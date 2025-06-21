@@ -5,84 +5,56 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log('Word Hover Translator extension installed.');
 });
 
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Background received message:', message);
   if (message.action === 'translate') {
-    const apiKey = 'AIzaSyAYRB-B9wg3Rs-Kc5cuSDzASM4Eo2Iuzu4';
-    const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0:generateContent?key=' + apiKey;
-    const prompt = `Translate the following word to ${message.targetLanguage}: ${message.word}`;
-    const body = {
-      contents: [{ parts: [{ text: prompt }] }]
-    };
-
-    let didRespond = false;
-    const timeout = setTimeout(() => {
-      if (!didRespond) {
-        sendResponse({ translation: 'Translation error: timeout' });
-        didRespond = true;
-      }
-    }, 4000); // 4 seconds
-
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const data = await response.json();
-      const translation = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No translation';
-      if (!didRespond) {
-        sendResponse({ translation });
-        didRespond = true;
-        clearTimeout(timeout);
-      }
-    } catch (err) {
-      if (!didRespond) {
-        sendResponse({ translation: 'Translation error: ' + err.message });
-        didRespond = true;
-        clearTimeout(timeout);
-      }
-    }
-    return true;
-  }
-  if (message.action === 'jishoLookup') {
-    try {
-      const response = await fetch(`https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(message.word)}`);
-      if (!response.ok) {
-        sendResponse({ result: 'No result found' });
-        return true;
-      }
-      const data = await response.json();
-      if (data.data && data.data.length > 0) {
-        const japanese = data.data[0].japanese[0].word || data.data[0].japanese[0].reading;
-        const english = data.data[0].senses[0].english_definitions.join(', ');
-        sendResponse({ result: `${japanese} — ${english}` });
-      } else {
-        sendResponse({ result: 'No result found' });
-      }
-    } catch (err) {
-      sendResponse({ result: 'Lookup error' });
-    }
-    return true;
+    // Handle async operation
+    handleTranslation(message, sendResponse);
+    return true; // Keep the message channel open for async response
   }
 });
 
-async function lookupJisho(word) {
+async function handleTranslation(message, sendResponse) {
   try {
-    const response = await fetch(`https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(word)}`);
+    // Note: In production, you should store the API key securely
+    const apiKey = 'AIzaSyAYRB-B9wg3Rs-Kc5cuSDzASM4Eo2Iuzu4';
+    const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + apiKey;
+    
+    // Create a more specific prompt for better translation
+    const prompt = `Translate the following text from any language to ${message.targetLanguage}. Only provide the translation, no explanations: "${message.word}"`;
+    
+    const body = {
+      contents: [{ 
+        parts: [{ text: prompt }] 
+      }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 100
+      }
+    };
+
+    console.log('Making API request to Gemini...');
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    
     if (!response.ok) {
-      console.error('Jisho fetch failed:', response.status, response.statusText);
-      return 'No result found';
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
+    
     const data = await response.json();
-    if (data.data && data.data.length > 0) {
-      const japanese = data.data[0].japanese[0].word || data.data[0].japanese[0].reading;
-      const english = data.data[0].senses[0].english_definitions.join(', ');
-      return `${japanese} — ${english}`;
-    }
-    return 'No result found';
+    console.log('Gemini API response:', data);
+    
+    const translation = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'No translation available';
+    
+    console.log('Sending translation:', translation);
+    sendResponse({ translation });
+    
   } catch (err) {
-    console.error('Jisho fetch error:', err);
-    return 'Lookup error';
+    console.error('Translation error:', err);
+    sendResponse({ translation: `Translation failed: ${err.message}` });
   }
-} 
+}

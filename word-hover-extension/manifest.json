@@ -4,7 +4,8 @@
   "version": "1.0",
   "description": "Translate words by hovering over them",
   "permissions": [
-    "activeTab"
+    "activeTab",
+    "storage"
   ],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*"

@@ -2,6 +2,21 @@ console.log('Content script loaded!');
 
 let targetLanguage = 'English'; // default language
 
+// Load saved settings when content script loads
+(async () => {
+  try {
+    if (chrome && chrome.storage && chrome.storage.sync) {
+      const result = await chrome.storage.sync.get(['targetLanguage']);
+      if (result.targetLanguage) {
+        targetLanguage = result.targetLanguage;
+        console.log('Loaded target language:', targetLanguage);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading settings:', error);
+  }
+})();
+
 function showTooltip(x, y, text) {
   console.log('showTooltip called with:', text);
   let tooltip = document.getElementById('word-hover-translation-tooltip');
@@ -31,22 +46,6 @@ function hideTooltip() {
   }
 }
 
-async function lookupJisho(word) {
-  try {
-    const response = await fetch(`http://localhost:3005/api/jisho?word=${encodeURIComponent(word)}`);
-    if (!response.ok) return 'No result found';
-    const data = await response.json();
-    if (data.data && data.data.length > 0) {
-      const japanese = data.data[0].japanese[0].word || data.data[0].japanese[0].reading;
-      const english = data.data[0].senses[0].english_definitions.join(', ');
-      return `${japanese} — ${english}`;
-    }
-    return 'No result found';
-  } catch (err) {
-    console.error('Proxy fetch error:', err);
-    return 'Lookup error';
-  }
-}
 
 document.addEventListener('mouseup', async (event) => {
   console.log('mouseup event triggered');
@@ -54,17 +53,36 @@ document.addEventListener('mouseup', async (event) => {
   console.log('selection:', selection ? selection.toString() : 'no selection');
   if (selection && selection.toString().trim().length > 0) {
     const highlightedText = selection.toString().trim();
+    
+    // Limit text length to avoid very long translations
+    if (highlightedText.length > 500) {
+      console.log('Text too long, skipping translation');
+      hideTooltip();
+      return;
+    }
+    
     console.log('showing tooltip for:', highlightedText);
     
-    // Show "Looking up..." first
-    showTooltip(event.clientX, event.clientY, 'Looking up...');
+    // Show "Translating..." first
+    showTooltip(event.clientX, event.clientY, 'Translating...');
     
-    // Get translation
-    const result = await lookupJisho(highlightedText);
-    console.log('Final translation result:', result);
-    
-    // Show translation
-    showTooltip(event.clientX, event.clientY, result);
+    // Get translation from Gemini API via background script
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'translate',
+        word: highlightedText,
+        targetLanguage: targetLanguage
+      });
+      
+      console.log('Translation response:', response);
+      const translation = response?.translation || 'Translation failed';
+      
+      // Show translation
+      showTooltip(event.clientX, event.clientY, translation);
+    } catch (error) {
+      console.error('Translation error:', error);
+      showTooltip(event.clientX, event.clientY, 'Translation error');
+    }
   } else {
     console.log('hiding tooltip - no selection');
     hideTooltip();
@@ -80,4 +98,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     targetLanguage = message.targetLanguage;
     console.log('Language updated to:', targetLanguage);
   }
-}); 
+});
