@@ -9,7 +9,6 @@ let targetLanguage = 'English'; // default language
       const result = await chrome.storage.sync.get(['targetLanguage']);
       if (result.targetLanguage) {
         targetLanguage = result.targetLanguage;
-        console.log('Loaded target language:', targetLanguage);
       }
     }
   } catch (error) {
@@ -18,7 +17,6 @@ let targetLanguage = 'English'; // default language
 })();
 
 function showTooltip(x, y, text) {
-  console.log('showTooltip called with:', text);
   let tooltip = document.getElementById('word-hover-translation-tooltip');
   if (!tooltip) {
     tooltip = document.createElement('div');
@@ -37,6 +35,82 @@ function showTooltip(x, y, text) {
   tooltip.style.left = x + 10 + 'px';
   tooltip.style.top = y + 10 + 'px';
   tooltip.style.display = 'block';
+  
+  // Add save button if this is a translation
+  if (text !== 'Translating...' && text !== 'Translation failed' && text !== 'Translation error') {
+    const saveButton = document.createElement('button');
+    saveButton.textContent = 'Save';
+    saveButton.style.cssText = `
+      position: absolute;
+      top: -20px;
+      right: -5px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-size: 10px;
+      cursor: pointer;
+      pointer-events: auto;
+    `;
+    
+    // --- DEBUG LOG ---
+    console.log('CONTENT SCRIPT: "Save" button is being created and listener is being attached.');
+    
+    saveButton.addEventListener('mousedown', async (e) => {
+      e.stopPropagation();
+
+      // --- DEBUG LOG ---
+      console.log('CONTENT SCRIPT: "Save" button successfully clicked/mousedown event fired.');
+
+      const selection = window.getSelection();
+      const originalText = selection ? selection.toString().trim() : '';
+      
+      if (originalText) {
+        const flashcard = {
+          id: String(Date.now()),
+          original: originalText,
+          translation: text,
+          targetLanguage: targetLanguage,
+          createdAt: new Date().toISOString(),
+          known: false,
+          reviewCount: 0
+        };
+        
+        try {
+          const result = await chrome.storage.sync.get(['flashcards']);
+          const flashcards = result.flashcards || [];
+          flashcards.push(flashcard);
+          await chrome.storage.sync.set({ flashcards: flashcards });
+          
+          // --- DEBUG LOG ---
+          console.log('CONTENT SCRIPT: Attempted to save. Flashcards in storage should now be:', flashcards);
+
+          // Notify popup about new flashcard
+          chrome.runtime.sendMessage({
+            action: 'flashcardSaved',
+            flashcard: flashcard,
+            totalCount: flashcards.length
+          });
+          
+          saveButton.textContent = '✓';
+          saveButton.style.background = '#45a049';
+          setTimeout(() => {
+            if (saveButton.parentNode) {
+              saveButton.parentNode.removeChild(saveButton);
+            }
+          }, 2000);
+        } catch (error) {
+          console.error('Error saving flashcard:', error);
+          saveButton.textContent = '✗';
+          saveButton.style.background = '#f44336';
+        }
+      }
+    });
+    
+    tooltip.appendChild(saveButton);
+    tooltip.style.pointerEvents = 'auto';
+  }
 }
 
 function hideTooltip() {
@@ -46,27 +120,18 @@ function hideTooltip() {
   }
 }
 
-
 document.addEventListener('mouseup', async (event) => {
-  console.log('mouseup event triggered');
   const selection = window.getSelection();
-  console.log('selection:', selection ? selection.toString() : 'no selection');
   if (selection && selection.toString().trim().length > 0) {
     const highlightedText = selection.toString().trim();
     
-    // Limit text length to avoid very long translations
     if (highlightedText.length > 500) {
-      console.log('Text too long, skipping translation');
       hideTooltip();
       return;
     }
     
-    console.log('showing tooltip for:', highlightedText);
-    
-    // Show "Translating..." first
     showTooltip(event.clientX, event.clientY, 'Translating...');
     
-    // Get translation from Gemini API via background script
     try {
       const response = await chrome.runtime.sendMessage({
         action: 'translate',
@@ -74,17 +139,13 @@ document.addEventListener('mouseup', async (event) => {
         targetLanguage: targetLanguage
       });
       
-      console.log('Translation response:', response);
       const translation = response?.translation || 'Translation failed';
-      
-      // Show translation
       showTooltip(event.clientX, event.clientY, translation);
     } catch (error) {
       console.error('Translation error:', error);
       showTooltip(event.clientX, event.clientY, 'Translation error');
     }
   } else {
-    console.log('hiding tooltip - no selection');
     hideTooltip();
   }
 });
@@ -96,6 +157,6 @@ document.addEventListener('scroll', hideTooltip);
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'updateSettings') {
     targetLanguage = message.targetLanguage;
-    console.log('Language updated to:', targetLanguage);
   }
 });
+
