@@ -138,8 +138,17 @@ function displayFlashcards(flashcards) {
             // Back Face (Translation)
             const backFace = document.createElement('div');
             backFace.className = 'flashcard-face flashcard-face-back';
+            
+            // Show translation and hiragana (if it exists) on separate lines
+            let backFaceContent = `<div class="flashcard-translation">${card.translation}</div>`;
+            if (card.hiragana) {
+                backFaceContent += `<div class="flashcard-hiragana">${card.hiragana}</div>`;
+            }
+
             backFace.innerHTML = `
-                <div class="flashcard-translation">${card.translation}</div>
+                <div class="flashcard-back-content">
+                    ${backFaceContent}
+                </div>
                 <div class="flashcard-meta">
                     <span>Lang: ${card.targetLanguage}</span>
                     <button class="delete-btn" data-card-id="${card.id}">Delete</button>

@@ -20,8 +20,16 @@ async function handleTranslation(message, sendResponse) {
     const apiKey = 'AIzaSyAYRB-B9wg3Rs-Kc5cuSDzASM4Eo2Iuzu4';
     const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + apiKey;
     
-    // Create a more specific prompt for better translation
-    const prompt = `Translate the following text from any language to ${message.targetLanguage}. Only provide the translation, no explanations: "${message.word}"`;
+    // New prompt to get translation and Hiragana for the source word if it contains Kanji.
+    const prompt = `Analyze the following text: "${message.word}".
+Respond with ONLY a valid, single-line JSON object with two keys: "translation" and "hiragana".
+1. "translation": Translate the text into ${message.targetLanguage} and dont put the word "translation" in the response.
+2. "hiragana": If the original text contains any Japanese Kanji characters, provide the complete Hiragana reading for the original text. Otherwise, this must be an empty string.
+Example Request: { "word": "日本語", "targetLanguage": "English" }
+Example Response: { "Japanese", "hiragana": "にほんご" }
+Example Request: { "word": "こんにちは", "targetLanguage": "English" }
+Example Response: {  "Hello" }
+Do not add any other explanations, comments, or markdown formatting.`;
     
     const body = {
       contents: [{ 
@@ -48,13 +56,30 @@ async function handleTranslation(message, sendResponse) {
     const data = await response.json();
     console.log('Gemini API response:', data);
     
-    const translation = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'No translation available';
+    // The response from Gemini is expected to be a string of JSON. We need to parse it.
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    let parsedResponse = {};
+    try {
+        // Clean the response to remove any markdown formatting before parsing.
+        const cleanedText = responseText.replace(/^```json\s*/, '').replace(/```$/, '');
+        parsedResponse = JSON.parse(cleanedText);
+    } catch (e) {
+        // If parsing fails, it's likely the model didn't return valid JSON.
+        console.error("Failed to parse JSON response from Gemini:", responseText);
+        // Fallback: treat the entire response as the translation
+        parsedResponse = { 
+            translation: responseText || 'No translation available', 
+            hiragana: '' 
+        };
+    }
+
+    const { translation, hiragana } = parsedResponse;
     
-    console.log('Sending translation:', translation);
-    sendResponse({ translation });
+    console.log('Sending response:', { translation, hiragana });
+    sendResponse({ translation, hiragana });
     
   } catch (err) {
     console.error('Translation error:', err);
-    sendResponse({ translation: `Translation failed: ${err.message}` });
+    sendResponse({ translation: `Translation failed: ${err.message}`, hiragana: '' });
   }
 }

@@ -122,6 +122,19 @@
             cursor: pointer;
             margin-left: 5px;
         }
+
+        .flashcard-back-content {
+            display: flex;
+            flex-direction: column-reverse; /* This is a trick to put the second div on top */
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            flex-grow: 1; /* Allows content to take up space */
+        }
+        .flashcard-hiragana {
+            font-size: 14px;
+            color: #555;
+        }
     </style>
 </head>
 <body>

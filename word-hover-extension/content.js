@@ -16,30 +16,46 @@ let targetLanguage = 'English'; // default language
   }
 })();
 
-function showTooltip(x, y, text) {
+function showTooltip(x, y, text, hiragana = '') {
   let tooltip = document.getElementById('word-hover-translation-tooltip');
   if (!tooltip) {
     tooltip = document.createElement('div');
     tooltip.id = 'word-hover-translation-tooltip';
     tooltip.style.position = 'fixed';
-    tooltip.style.background = '#222';
+    tooltip.style.background = 'rgba(34, 34, 34, 0.95)';
     tooltip.style.color = '#fff';
     tooltip.style.padding = '8px 12px';
     tooltip.style.borderRadius = '6px';
     tooltip.style.zIndex = 99999;
     tooltip.style.fontSize = '16px';
-    tooltip.style.pointerEvents = 'none';
+    tooltip.style.textAlign = 'center';
     document.body.appendChild(tooltip);
   }
-  tooltip.textContent = text;
+
+  // Create the content for the tooltip, with hiragana on top if it exists.
+  let tooltipContent = '';
+  if (hiragana) {
+    tooltipContent = `<div style="font-size: 13px; color: #ccc;">${hiragana}</div><div style="font-weight: bold;">${text}</div>`;
+  } else {
+    tooltipContent = `<div style="font-weight: bold;">${text}</div>`;
+  }
+  tooltip.innerHTML = tooltipContent; // Use innerHTML to set the content.
+  
   tooltip.style.left = x + 10 + 'px';
   tooltip.style.top = y + 10 + 'px';
   tooltip.style.display = 'block';
   
   // Add save button if this is a translation
   if (text !== 'Translating...' && text !== 'Translation failed' && text !== 'Translation error') {
+    // If a save button already exists from a previous hover, remove it first.
+    const existingButton = tooltip.querySelector('.save-flashcard-btn');
+    if (existingButton) {
+        existingButton.remove();
+    }
+
     const saveButton = document.createElement('button');
     saveButton.textContent = 'Save';
+    saveButton.className = 'save-flashcard-btn';
     saveButton.style.cssText = `
       position: absolute;
       top: -20px;
@@ -51,26 +67,19 @@ function showTooltip(x, y, text) {
       padding: 2px 6px;
       font-size: 10px;
       cursor: pointer;
-      pointer-events: auto;
     `;
-    
-    // --- DEBUG LOG ---
-    console.log('CONTENT SCRIPT: "Save" button is being created and listener is being attached.');
     
     saveButton.addEventListener('mousedown', async (e) => {
       e.stopPropagation();
-
-      // --- DEBUG LOG ---
-      console.log('CONTENT SCRIPT: "Save" button successfully clicked/mousedown event fired.');
-
-      const selection = window.getSelection();
-      const originalText = selection ? selection.toString().trim() : '';
+      const originalText = window.getSelection().toString().trim();
       
       if (originalText) {
+        // Use the data passed directly to showTooltip, no need to request again.
         const flashcard = {
           id: String(Date.now()),
           original: originalText,
           translation: text,
+          hiragana: hiragana,
           targetLanguage: targetLanguage,
           createdAt: new Date().toISOString(),
           known: false,
@@ -82,28 +91,18 @@ function showTooltip(x, y, text) {
           const flashcards = result.flashcards || [];
           flashcards.push(flashcard);
           await chrome.storage.sync.set({ flashcards: flashcards });
-          
-          // --- DEBUG LOG ---
-          console.log('CONTENT SCRIPT: Attempted to save. Flashcards in storage should now be:', flashcards);
 
-          // Notify popup about new flashcard
           chrome.runtime.sendMessage({
             action: 'flashcardSaved',
-            flashcard: flashcard,
             totalCount: flashcards.length
           });
           
           saveButton.textContent = '✓';
+          saveButton.disabled = true;
           saveButton.style.background = '#45a049';
-          setTimeout(() => {
-            if (saveButton.parentNode) {
-              saveButton.parentNode.removeChild(saveButton);
-            }
-          }, 2000);
         } catch (error) {
           console.error('Error saving flashcard:', error);
           saveButton.textContent = '✗';
-          saveButton.style.background = '#f44336';
         }
       }
     });
@@ -139,8 +138,8 @@ document.addEventListener('mouseup', async (event) => {
         targetLanguage: targetLanguage
       });
       
-      const translation = response?.translation || 'Translation failed';
-      showTooltip(event.clientX, event.clientY, translation);
+      const { translation, hiragana } = response || { translation: 'Translation failed', hiragana: '' };
+      showTooltip(event.clientX, event.clientY, translation, hiragana);
     } catch (error) {
       console.error('Translation error:', error);
       showTooltip(event.clientX, event.clientY, 'Translation error');
