@@ -37,7 +37,7 @@ Do not add any other explanations, comments, or markdown formatting.`;
       }],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 100
+        maxOutputTokens: 500
       }
     };
 

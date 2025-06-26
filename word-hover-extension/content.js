@@ -119,6 +119,7 @@ function hideTooltip() {
   }
 }
 
+let debounceTimer; // Timer for debouncing API requests
 document.addEventListener('mouseup', async (event) => {
   const selection = window.getSelection();
   if (selection && selection.toString().trim().length > 0) {
@@ -129,21 +130,32 @@ document.addEventListener('mouseup', async (event) => {
       return;
     }
     
+    // Show "Translating..." immediately for responsiveness
     showTooltip(event.clientX, event.clientY, 'Translating...');
     
-    try {
-      const response = await chrome.runtime.sendMessage({
-        action: 'translate',
-        word: highlightedText,
-        targetLanguage: targetLanguage
-      });
-      
-      const { translation, hiragana } = response || { translation: 'Translation failed', hiragana: '' };
-      showTooltip(event.clientX, event.clientY, translation, hiragana);
-    } catch (error) {
-      console.error('Translation error:', error);
-      showTooltip(event.clientX, event.clientY, 'Translation error');
-    }
+    // Clear the previous timer to reset the debounce period
+    clearTimeout(debounceTimer);
+    
+    // Set a new timer to make the API call after a short delay
+    debounceTimer = setTimeout(async () => {
+      try {
+        const response = await chrome.runtime.sendMessage({
+          action: 'translate',
+          word: highlightedText,
+          targetLanguage: targetLanguage
+        });
+        
+        const { translation, hiragana } = response || { translation: 'Translation failed', hiragana: '' };
+        // We need to re-calculate the tooltip position in case the user has scrolled
+        const latestSelection = window.getSelection().getRangeAt(0).getBoundingClientRect();
+        showTooltip(latestSelection.right, latestSelection.bottom, translation, hiragana);
+      } catch (error) {
+        console.error('Translation error:', error);
+        // Show error at the last known position
+        showTooltip(event.clientX, event.clientY, 'Translation error');
+      }
+    }, 400); // 400ms delay
+
   } else {
     hideTooltip();
   }
