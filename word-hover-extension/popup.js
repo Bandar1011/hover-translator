@@ -1,56 +1,336 @@
-// Save settings when button is clicked
+// Global state
+let currentDeck = null;
+let studyCards = [];
+let currentCardIndex = 0;
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT LISTENERS ---
 
-    // 1. Save Language Settings
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            // Update active tab button
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // Show/hide appropriate content
+            const tabName = button.getAttribute('data-tab');
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(tabName + 'Tab').style.display = 'block';
+            
+            // Hide study container when switching tabs
+            document.getElementById('studyContainer').style.display = 'none';
+        });
+    });
+
+    // Create new deck
+    document.getElementById('createDeck').addEventListener('click', async () => {
+        const deckName = prompt('Enter deck name:');
+        if (deckName) {
+            await createDeck(deckName);
+            await loadDecks();
+            updateDeckSelect();
+        }
+    });
+
+    // Add flashcard form
+    document.getElementById('addFlashcard').addEventListener('click', async () => {
+        const deckId = document.getElementById('selectDeck').value;
+        const frontText = document.getElementById('frontText').value.trim();
+        const backText = document.getElementById('backText').value.trim();
+        const hiragana = document.getElementById('hiragana').value.trim();
+
+        if (!deckId || !frontText || !backText) {
+            showStatus('Please fill in all required fields', 'error');
+            return;
+        }
+
+        await addFlashcard(deckId, frontText, backText, hiragana);
+        
+        // Clear form
+        document.getElementById('frontText').value = '';
+        document.getElementById('backText').value = '';
+        document.getElementById('hiragana').value = '';
+        
+        showStatus('Flashcard added successfully!', 'success');
+        await loadDecks(); // Refresh deck list to update counts
+    });
+
+    // Study mode controls
+    document.getElementById('flipCard').addEventListener('click', () => {
+        const frontContent = document.getElementById('cardFront');
+        const backContent = document.getElementById('cardBack');
+        if (frontContent.style.display !== 'none') {
+            frontContent.style.display = 'none';
+            backContent.style.display = 'block';
+        } else {
+            frontContent.style.display = 'block';
+            backContent.style.display = 'none';
+        }
+    });
+
+    document.getElementById('knowBtn').addEventListener('click', () => {
+        if (currentCardIndex < studyCards.length - 1) {
+            studyCards[currentCardIndex].known = true;
+            currentCardIndex++;
+            showCurrentCard();
+        } else {
+            finishStudySession();
+        }
+    });
+
+    document.getElementById('dontKnowBtn').addEventListener('click', () => {
+        if (currentCardIndex < studyCards.length - 1) {
+            currentCardIndex++;
+            showCurrentCard();
+        } else {
+            finishStudySession();
+        }
+    });
+
+    document.getElementById('finishStudy').addEventListener('click', finishStudySession);
+
+    // Language settings
     const saveButton = document.getElementById('saveSettings');
     if (saveButton) {
         saveButton.addEventListener('click', saveSettings);
-    }
-
-    // 2. View Flashcards
-    const viewFlashcardsButton = document.getElementById('viewFlashcards');
-    if (viewFlashcardsButton) {
-        viewFlashcardsButton.addEventListener('click', handleViewFlashcardsClick);
-    }
-    
-    // 3. Refresh Flashcards
-    const refreshFlashcardsButton = document.getElementById('refreshFlashcards');
-    if (refreshFlashcardsButton) {
-        refreshFlashcardsButton.addEventListener('click', handleViewFlashcardsClick); // Refresh does the same as view
-    }
-
-    // 4. Delete a Flashcard (using Event Delegation)
-    const flashcardList = document.getElementById('flashcardList');
-    if (flashcardList) {
-        flashcardList.addEventListener('click', (event) => {
-            // Handle card flip
-            const scene = event.target.closest('.flashcard-scene');
-            if (scene && !event.target.matches('.delete-btn')) {
-                scene.querySelector('.flashcard').classList.toggle('is-flipped');
-            }
-
-            // Handle delete button
-            if (event.target.matches('.delete-btn')) {
-                console.log("Delete button clicked");
-                const cardId = event.target.dataset.cardId;
-                deleteFlashcard(cardId);
-            }
-        });
     }
 
     // --- INITIALIZATION ---
     loadInitialState();
 });
 
-// --- CORE FUNCTIONS ---
+// --- DECK MANAGEMENT FUNCTIONS ---
 
-/**
- * Loads language settings and flashcard count when the popup opens.
- */
+async function createDeck(name) {
+    try {
+        const result = await chrome.storage.sync.get(['decks']);
+        const decks = result.decks || [];
+        const newDeck = {
+            id: String(Date.now()),
+            name: name,
+            cards: []
+        };
+        decks.push(newDeck);
+        await chrome.storage.sync.set({ decks: decks });
+        showStatus('Deck created successfully!', 'success');
+    } catch (error) {
+        console.error('Error creating deck:', error);
+        showStatus('Error creating deck', 'error');
+    }
+}
+
+async function addFlashcard(deckId, original, translation, hiragana = '') {
+    try {
+        const result = await chrome.storage.sync.get(['decks']);
+        const decks = result.decks || [];
+        const deckIndex = decks.findIndex(d => d.id === deckId);
+        
+        if (deckIndex === -1) {
+            throw new Error('Deck not found');
+        }
+
+        const newCard = {
+            id: String(Date.now()),
+            original: original,
+            translation: translation,
+            hiragana: hiragana,
+            createdAt: new Date().toISOString(),
+            known: false,
+            reviewCount: 0
+        };
+
+        decks[deckIndex].cards.push(newCard);
+        await chrome.storage.sync.set({ decks: decks });
+    } catch (error) {
+        console.error('Error adding flashcard:', error);
+        showStatus('Error adding flashcard', 'error');
+    }
+}
+
+async function loadDecks() {
+    try {
+        const result = await chrome.storage.sync.get(['decks']);
+        const decks = result.decks || [];
+        
+        // If no decks exist, create the default deck
+        if (decks.length === 0) {
+            const defaultDeck = {
+                id: 'deck1',
+                name: 'Deck 1',
+                cards: []
+            };
+            decks.push(defaultDeck);
+            await chrome.storage.sync.set({ decks: decks });
+        }
+
+        // Migrate any old flashcards to Deck 1
+        const oldFlashcards = await loadOldFlashcards();
+        if (oldFlashcards.length > 0) {
+            decks[0].cards.push(...oldFlashcards);
+            await chrome.storage.sync.set({ decks: decks });
+            // Clear old storage
+            await chrome.storage.sync.remove(['flashcards']);
+        }
+
+        const deckList = document.getElementById('deckList');
+        deckList.innerHTML = '';
+
+        decks.forEach(deck => {
+            const deckElement = document.createElement('div');
+            deckElement.className = 'deck-item';
+            deckElement.innerHTML = `
+                <span class="deck-name">${deck.name}</span>
+                <span class="deck-count">${deck.cards.length} cards</span>
+                <button class="study-btn" data-deck-id="${deck.id}">Study</button>
+            `;
+            deckList.appendChild(deckElement);
+
+            // Add click handler for study button
+            const studyBtn = deckElement.querySelector('.study-btn');
+            studyBtn.addEventListener('click', () => startStudySession(deck));
+        });
+
+        return decks;
+    } catch (error) {
+        console.error('Error loading decks:', error);
+        showStatus('Error loading decks', 'error');
+        return [];
+    }
+}
+
+async function loadOldFlashcards() {
+    try {
+        const result = await chrome.storage.sync.get(['flashcards']);
+        return result.flashcards || [];
+    } catch (error) {
+        console.error('Error loading old flashcards:', error);
+        return [];
+    }
+}
+
+async function updateDeckSelect() {
+    const result = await chrome.storage.sync.get(['decks']);
+    const decks = result.decks || [];
+    
+    const select = document.getElementById('selectDeck');
+    select.innerHTML = '';
+    
+    decks.forEach(deck => {
+        const option = document.createElement('option');
+        option.value = deck.id;
+        option.textContent = deck.name;
+        select.appendChild(option);
+    });
+}
+
+// --- STUDY MODE FUNCTIONS ---
+
+function startStudySession(deck) {
+    currentDeck = deck;
+    // Reset study session
+    studyCards = [...deck.cards];
+    currentCardIndex = 0;
+    
+    // Hide other views and show study container
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
+    });
+    const studyContainer = document.getElementById('studyContainer');
+    studyContainer.style.display = 'block';
+    
+    // Update deck name
+    document.getElementById('studyDeckName').textContent = deck.name;
+    
+    // Show first card
+    showCurrentCard();
+}
+
+function showCurrentCard() {
+    if (currentCardIndex >= studyCards.length) {
+        finishStudySession();
+        return;
+    }
+
+    const card = studyCards[currentCardIndex];
+    const frontContent = document.getElementById('cardFront');
+    const backContent = document.getElementById('cardBack');
+
+    // Show front of card
+    frontContent.innerHTML = `
+        <div class="flashcard-original">${card.original}</div>
+    `;
+    
+    // Prepare back of card
+    let backHTML = `<div class="flashcard-translation">${card.translation}</div>`;
+    if (card.hiragana) {
+        backHTML += `<div class="hiragana-text">${card.hiragana}</div>`;
+    }
+    backContent.innerHTML = backHTML;
+
+    // Reset card flip
+    frontContent.style.display = 'block';
+    backContent.style.display = 'none';
+
+    // Update progress
+    document.getElementById('progressText').textContent = 
+        `Card ${currentCardIndex + 1} of ${studyCards.length}`;
+}
+
+async function finishStudySession() {
+    // Update known status in storage
+    try {
+        const result = await chrome.storage.sync.get(['decks']);
+        const decks = result.decks || [];
+        const deckIndex = decks.findIndex(d => d.id === currentDeck.id);
+        
+        if (deckIndex !== -1) {
+            studyCards.forEach(studyCard => {
+                const cardIndex = decks[deckIndex].cards.findIndex(c => c.id === studyCard.id);
+                if (cardIndex !== -1) {
+                    decks[deckIndex].cards[cardIndex].known = studyCard.known;
+                    decks[deckIndex].cards[cardIndex].reviewCount++;
+                }
+            });
+            
+            await chrome.storage.sync.set({ decks: decks });
+        }
+
+        // Return to deck view
+        document.getElementById('studyContainer').style.display = 'none';
+        document.getElementById('decksTab').style.display = 'block';
+        
+        // Show results
+        const knownCount = studyCards.filter(card => card.known).length;
+        showStatus(`Study session complete! You knew ${knownCount} out of ${studyCards.length} cards.`, 'success');
+        
+        // Refresh deck list
+        await loadDecks();
+    } catch (error) {
+        console.error('Error saving study session:', error);
+        showStatus('Error saving progress', 'error');
+    }
+}
+
+// --- UTILITY FUNCTIONS ---
+
+function showStatus(message, type) {
+    const statusDiv = document.getElementById('status');
+    if (statusDiv) {
+        statusDiv.textContent = message;
+        statusDiv.className = `status ${type}`;
+        statusDiv.style.display = 'block';
+        setTimeout(() => { statusDiv.style.display = 'none'; }, 2000);
+    }
+}
+
+// --- INITIALIZATION ---
+
 async function loadInitialState() {
     try {
-        // Load and set the target language
+        // Load language setting
         const langResult = await chrome.storage.sync.get(['targetLanguage']);
         if (langResult.targetLanguage) {
             const targetLanguageElement = document.getElementById('targetLanguage');
@@ -59,18 +339,16 @@ async function loadInitialState() {
             }
         }
         
-        // Load flashcard count and update the button text
-        const flashcards = await loadFlashcards();
-        updateFlashcardButtonText(flashcards.length);
-
+        // Load decks and update UI
+        await loadDecks();
+        await updateDeckSelect();
     } catch (error) {
         console.error('Error loading initial state:', error);
     }
 }
 
-/**
- * Saves the selected target language to storage and notifies the content script.
- */
+// --- SETTINGS ---
+
 async function saveSettings() {
     const targetLanguage = document.getElementById('targetLanguage')?.value || 'Japanese';
     try {
@@ -83,171 +361,8 @@ async function saveSettings() {
             }).catch(err => console.log('Content script not ready yet.'));
         }
         showStatus('Language saved successfully!', 'success');
-        setTimeout(() => window.close(), 1500);
     } catch (error) {
         console.error('Error saving settings:', error);
         showStatus('Error saving language', 'error');
     }
 }
-
-/**
- * Fetches flashcards from storage and calls the display function.
- */
-async function handleViewFlashcardsClick() {
-    try {
-        const flashcards = await loadFlashcards();
-        displayFlashcards(flashcards);
-    } catch (error) {
-        console.error('Error handling view flashcards click:', error);
-        showStatus('Error loading flashcards', 'error');
-    }
-}
-
-/**
- * Renders the list of flashcards in the popup's HTML.
- * @param {Array} flashcards - The array of flashcard objects.
- */
-function displayFlashcards(flashcards) {
-    const container = document.getElementById('flashcardContainer');
-    const list = document.getElementById('flashcardList');
-    if (!container || !list) return;
-
-    list.innerHTML = ''; // Clear previous content
-    
-    if (flashcards.length === 0) {
-        list.innerHTML = '<p style="color: #666; text-align: center;">No flashcards saved.</p>';
-    } else {
-        flashcards.forEach((card) => {
-            const sceneElement = document.createElement('div');
-            sceneElement.className = 'flashcard-scene';
-
-            const cardElement = document.createElement('div');
-            cardElement.className = 'flashcard';
-
-            // Front Face (Original Word)
-            const frontFace = document.createElement('div');
-            frontFace.className = 'flashcard-face flashcard-face-front';
-            frontFace.innerHTML = `
-                <div class="flashcard-original">${card.original}</div>
-                <div class="flashcard-meta">
-                    <span>Lang: ${card.targetLanguage}</span>
-                    <button class="delete-btn" data-card-id="${card.id}">Delete</button>
-                </div>
-            `;
-
-            // Back Face (Translation)
-            const backFace = document.createElement('div');
-            backFace.className = 'flashcard-face flashcard-face-back';
-            
-            // Show translation and hiragana (if it exists) on separate lines
-            let backFaceContent = `<div class="flashcard-translation">${card.translation}</div>`;
-            if (card.hiragana) {
-                backFaceContent += `<div class="flashcard-hiragana">${card.hiragana}</div>`;
-            }
-
-            backFace.innerHTML = `
-                <div class="flashcard-back-content">
-                    ${backFaceContent}
-                </div>
-                <div class="flashcard-meta">
-                    <span>Lang: ${card.targetLanguage}</span>
-                    <button class="delete-btn" data-card-id="${card.id}">Delete</button>
-                </div>
-            `;
-
-            cardElement.appendChild(frontFace);
-            cardElement.appendChild(backFace);
-            sceneElement.appendChild(cardElement);
-            list.appendChild(sceneElement);
-        });
-    }
-    
-    container.style.display = 'block';
-}
-
-/**
- * Deletes a specific flashcard from storage and updates the view.
- * @param {string} flashcardId - The ID of the flashcard to delete.
- */
-async function deleteFlashcard(flashcardId) {
-    try {
-        // Test #1: Check the inputs
-        console.log("Attempting to delete flashcard with ID:", flashcardId, `(Type: ${typeof flashcardId})`);
-
-        let flashcards = await loadFlashcards();
-        console.log("Flashcards before deletion:", flashcards);
-        console.log("ID of first card in storage:", flashcards[0].id, `(Type: ${typeof flashcards[0].id})`);
-
-        // The Filter Operation
-        const filtered = flashcards.filter(card => String(card.id) !== String(flashcardId));
-        
-        // Test #2 & #3: Check the results
-        console.log("Flashcards after deletion:", filtered);
-
-        if (filtered.length === flashcards.length - 1) {
-            console.log("✅ SUCCESS: The number of flashcards was reduced by one.");
-        } else {
-            console.error("❌ FAILURE: The flashcard was not removed from the array.");
-        }
-
-        await chrome.storage.sync.set({ flashcards: filtered });
-        
-        displayFlashcards(filtered);
-        updateFlashcardButtonText(filtered.length);
-        showStatus('Flashcard deleted!', 'success');
-    } catch (error) {
-        console.error('Error deleting flashcard:', error);
-        showStatus('Error deleting flashcard', 'error');
-    }
-}
-
-/**
- * Retrieves the flashcards array from Chrome's sync storage.
- * @returns {Promise<Array>} A promise that resolves to the array of flashcards.
- */
-async function loadFlashcards() {
-    try {
-        const result = await chrome.storage.sync.get(['flashcards']);
-        // --- DEBUG LOG ---
-        console.log('POPUP: Attempting to load. Data received from storage:', result);
-        return result.flashcards || [];
-    } catch (error) {
-        console.error('Error loading flashcards:', error);
-        return [];
-    }
-}
-
-// --- UTILITY FUNCTIONS ---
-
-/**
- * Updates the text on the 'View My Flashcards' button with the current count.
- * @param {number} count - The number of flashcards.
- */
-function updateFlashcardButtonText(count) {
-    const viewFlashcardsButton = document.getElementById('viewFlashcards');
-    if (viewFlashcardsButton) {
-        viewFlashcardsButton.textContent = count > 0 ? `View My Flashcards (${count})` : 'View My Flashcards';
-    }
-}
- 
-/**
- * Shows a status message (e.g., success or error) in the popup.
- * @param {string} message - The text to display.
- * @param {'success'|'error'} type - The type of message.
- */
-function showStatus(message, type) {
-    const statusDiv = document.getElementById('status');
-    if (statusDiv) {
-        statusDiv.textContent = message;
-        statusDiv.className = `status ${type}`;
-        statusDiv.style.display = 'block';
-        setTimeout(() => { statusDiv.style.display = 'none'; }, 2000);
-    }
-}
-
-// Listen for messages from other parts of the extension (e.g., content script)
-chrome.runtime.onMessage.addListener((message) => {
-    if (message.action === 'flashcardSaved') {
-        updateFlashcardButtonText(message.totalCount);
-    }
-});

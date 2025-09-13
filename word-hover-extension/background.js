@@ -14,22 +14,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
+let isRequestInProgress = false; // A "gate" to prevent concurrent requests
+
 async function handleTranslation(message, sendResponse) {
+  // If a request is already happening, ignore this new one.
+  if (isRequestInProgress) {
+    console.log('Request ignored: Another translation is already in progress.');
+    // It's important to still call sendResponse to close the message channel,
+    // but we can send an empty/non-committal response.
+    sendResponse({ translation: null, hiragana: null }); // or some indicator of being busy
+    return;
+  }
+  
+  // Close the gate
+  isRequestInProgress = true;
+
   try {
     // Note: In production, you should store the API key securely
     const apiKey = 'AIzaSyAYRB-B9wg3Rs-Kc5cuSDzASM4Eo2Iuzu4';
     const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + apiKey;
     
-    // New prompt to get translation and Hiragana for the source word if it contains Kanji.
+    // New, clearer prompt with valid JSON examples to ensure reliable responses.
     const prompt = `Analyze the following text: "${message.word}".
-Respond with ONLY a valid, single-line JSON object with two keys: "translation" and "hiragana".
-1. "translation": Translate the text into ${message.targetLanguage} and dont put the word "translation" in the response.
-2. "hiragana": If the original text contains any Japanese Kanji characters, provide the complete Hiragana reading for the original text. Otherwise, this must be an empty string.
-Example Request: { "word": "日本語", "targetLanguage": "English" }
-Example Response: { "Japanese", "hiragana": "にほんご" }
-Example Request: { "word": "こんにちは", "targetLanguage": "English" }
-Example Response: {  "Hello" }
-Do not add any other explanations, comments, or markdown formatting.`;
+Translate it to ${message.targetLanguage}.
+You MUST respond with ONLY a valid, single-line JSON object with two keys: "translation" and "hiragana".
+
+- "translation": This key's value must be the translated text.
+- "hiragana": If the original text contains Japanese Kanji, this key's value must be the complete Hiragana reading. If there is no Kanji, the value must be an empty string.
+
+Correct Example 1:
+Original Text: "日本語"
+Response: {"translation": "Japanese", "hiragana": "にほんご"}
+
+Correct Example 2:
+Original Text: "こんにちは"
+Response: {"translation": "Hello", "hiragana": ""}
+
+Do not add any other text, explanations, or markdown formatting outside of the JSON object.`;
     
     const body = {
       contents: [{ 
@@ -81,5 +102,8 @@ Do not add any other explanations, comments, or markdown formatting.`;
   } catch (err) {
     console.error('Translation error:', err);
     sendResponse({ translation: `Translation failed: ${err.message}`, hiragana: '' });
+  } finally {
+    // IMPORTANT: Open the gate again, whether the request succeeded or failed.
+    isRequestInProgress = false;
   }
 }

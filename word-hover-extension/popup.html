@@ -3,7 +3,7 @@
 <head>
     <style>
         body {
-            width: 250px;
+            width: 300px;
             padding: 20px;
             font-family: Arial, sans-serif;
         }
@@ -54,86 +54,146 @@
             font-size: 12px;
             color: #0066cc;
         }
-
-        /* Flashcard Styles */
-        .flashcard-scene {
-            perspective: 600px;
-            margin-bottom: 15px;
-            cursor: pointer;
-        }
-
-        .flashcard {
-            width: 100%;
-            height: 100px; /* Adjust height as needed */
-            position: relative;
-            transform-style: preserve-3d;
-            transition: transform 0.6s;
-        }
-
-        .flashcard.is-flipped {
-            transform: rotateY(180deg);
-        }
-
-        .flashcard-face {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            backface-visibility: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
+        
+        /* Deck Management Styles */
+        .deck-list {
+            margin: 15px 0;
             border: 1px solid #ddd;
-            border-radius: 8px;
+            border-radius: 4px;
             padding: 10px;
-            box-sizing: border-box;
-        }
-
-        .flashcard-face-front {
-            background: #fff;
-        }
-
-        .flashcard-face-back {
-            background: #f9f9f9;
-            transform: rotateY(180deg);
         }
         
-        .flashcard-original, .flashcard-translation {
-            font-size: 18px;
+        .deck-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .deck-item:last-child {
+            border-bottom: none;
+        }
+        
+        .deck-name {
             font-weight: bold;
-            text-align: center;
+            flex-grow: 1;
         }
         
-        .flashcard-meta {
-            position: absolute;
-            bottom: 5px;
-            right: 8px;
-            font-size: 10px;
-            color: #999;
+        .deck-count {
+            color: #666;
+            margin-right: 10px;
         }
-
-        .delete-btn {
-            background: #ff4d4d;
+        
+        .study-btn {
+            background: #4CAF50;
             color: white;
             border: none;
-            padding: 3px 6px;
+            padding: 4px 8px;
             border-radius: 4px;
-            font-size: 10px;
             cursor: pointer;
-            margin-left: 5px;
+            font-size: 12px;
+            width: auto;
+        }
+        
+        /* Study Mode Styles */
+        .study-container {
+            display: none;
+            text-align: center;
+        }
+        
+        .study-card {
+            min-height: 150px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 15px 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: white;
+        }
+        
+        .study-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .know-btn {
+            background: #4CAF50;
+            width: 45%;
+        }
+        
+        .dont-know-btn {
+            background: #f44336;
+            width: 45%;
+        }
+        
+        /* Add Flashcard Form Styles */
+        .add-flashcard-form {
+            margin-top: 15px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .form-group {
+            margin-bottom: 10px;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .tab-btn.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
         }
 
-        .flashcard-back-content {
-            display: flex;
-            flex-direction: column-reverse; /* This is a trick to put the second div on top */
-            align-items: center;
-            justify-content: center;
+        .card-content {
+            font-size: 18px;
             text-align: center;
-            flex-grow: 1; /* Allows content to take up space */
         }
-        .flashcard-hiragana {
+
+        .hiragana-text {
             font-size: 14px;
-            color: #555;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        #progressText {
+            color: #666;
+            font-size: 14px;
+        }
+
+        #finishStudy {
+            background: #2196F3;
+            font-size: 12px;
+            padding: 5px 10px;
+            width: auto;
         }
     </style>
 </head>
@@ -167,11 +227,60 @@
     
     <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
     
-    <h3>Flashcards</h3>
-    <button id="viewFlashcards">View My Flashcards</button>
-    <button id="refreshFlashcards" style="margin-left: 5px; background: #2196F3;">Refresh</button>
-    <div id="flashcardContainer" style="display: none; margin-top: 10px;">
-        <div id="flashcardList"></div>
+    <div class="tab-buttons">
+        <button class="tab-btn active" data-tab="decks">My Decks</button>
+        <button class="tab-btn" data-tab="add">Add Flashcard</button>
+    </div>
+    
+    <!-- Decks View -->
+    <div id="decksTab" class="tab-content">
+        <button id="createDeck" style="margin-bottom: 10px;">Create New Deck</button>
+        <div class="deck-list" id="deckList">
+            <!-- Decks will be inserted here -->
+        </div>
+    </div>
+    
+    <!-- Add Flashcard Form -->
+    <div id="addTab" class="tab-content" style="display: none;">
+        <div class="add-flashcard-form">
+            <div class="form-group">
+                <label for="selectDeck">Select Deck:</label>
+                <select id="selectDeck">
+                    <!-- Decks will be inserted here -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="frontText">Front (Original):</label>
+                <input type="text" id="frontText" placeholder="Enter text">
+            </div>
+            <div class="form-group">
+                <label for="backText">Back (Translation):</label>
+                <input type="text" id="backText" placeholder="Enter translation">
+            </div>
+            <div class="form-group">
+                <label for="hiragana">Hiragana (optional):</label>
+                <input type="text" id="hiragana" placeholder="Enter hiragana">
+            </div>
+            <button id="addFlashcard">Add Flashcard</button>
+        </div>
+    </div>
+    
+    <!-- Study Mode -->
+    <div id="studyContainer" class="study-container">
+        <h3 id="studyDeckName">Deck Name</h3>
+        <div class="study-card">
+            <div id="cardFront" class="card-content"></div>
+            <div id="cardBack" class="card-content" style="display: none;"></div>
+        </div>
+        <button id="flipCard" style="margin-bottom: 10px;">Flip Card</button>
+        <div class="study-buttons">
+            <button class="dont-know-btn" id="dontKnowBtn">Don't Know</button>
+            <button class="know-btn" id="knowBtn">Know</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <span id="progressText">Card 1 of 10</span>
+            <button id="finishStudy" style="margin-left: 10px;">Finish</button>
+        </div>
     </div>
     
     <script src="popup.js"></script>

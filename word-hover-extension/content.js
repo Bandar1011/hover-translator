@@ -39,7 +39,7 @@ function showTooltip(x, y, text, hiragana = '') {
   } else {
     tooltipContent = `<div style="font-weight: bold;">${text}</div>`;
   }
-  tooltip.innerHTML = tooltipContent; // Use innerHTML to set the content.
+  tooltip.innerHTML = tooltipContent;
   
   tooltip.style.left = x + 10 + 'px';
   tooltip.style.top = y + 10 + 'px';
@@ -47,7 +47,6 @@ function showTooltip(x, y, text, hiragana = '') {
   
   // Add save button if this is a translation
   if (text !== 'Translating...' && text !== 'Translation failed' && text !== 'Translation error') {
-    // If a save button already exists from a previous hover, remove it first.
     const existingButton = tooltip.querySelector('.save-flashcard-btn');
     if (existingButton) {
         existingButton.remove();
@@ -74,8 +73,7 @@ function showTooltip(x, y, text, hiragana = '') {
       const originalText = window.getSelection().toString().trim();
       
       if (originalText) {
-        // Use the data passed directly to showTooltip, no need to request again.
-        const flashcard = {
+        const newCard = {
           id: String(Date.now()),
           original: originalText,
           translation: text,
@@ -87,14 +85,28 @@ function showTooltip(x, y, text, hiragana = '') {
         };
         
         try {
-          const result = await chrome.storage.sync.get(['flashcards']);
-          const flashcards = result.flashcards || [];
-          flashcards.push(flashcard);
-          await chrome.storage.sync.set({ flashcards: flashcards });
+          // Get all decks
+          const result = await chrome.storage.sync.get(['decks']);
+          const decks = result.decks || [];
+          
+          // If no decks exist, create Deck 1
+          if (decks.length === 0) {
+            decks.push({
+              id: 'deck1',
+              name: 'Deck 1',
+              cards: []
+            });
+          }
+          
+          // Add card to the first deck (Deck 1)
+          decks[0].cards.push(newCard);
+          await chrome.storage.sync.set({ decks: decks });
 
+          // Notify popup about the new card
           chrome.runtime.sendMessage({
             action: 'flashcardSaved',
-            totalCount: flashcards.length
+            deckId: decks[0].id,
+            totalCount: decks[0].cards.length
           });
           
           saveButton.textContent = '✓';
@@ -146,6 +158,12 @@ document.addEventListener('mouseup', async (event) => {
         });
         
         const { translation, hiragana } = response || { translation: 'Translation failed', hiragana: '' };
+        
+        // If the response was null, it means a request was ignored, so do nothing.
+        if (translation === null) {
+          return;
+        }
+
         // We need to re-calculate the tooltip position in case the user has scrolled
         const latestSelection = window.getSelection().getRangeAt(0).getBoundingClientRect();
         showTooltip(latestSelection.right, latestSelection.bottom, translation, hiragana);
@@ -154,7 +172,7 @@ document.addEventListener('mouseup', async (event) => {
         // Show error at the last known position
         showTooltip(event.clientX, event.clientY, 'Translation error');
       }
-    }, 400); // 400ms delay
+    }, 1000); // 1000ms (1 second) delay
 
   } else {
     hideTooltip();
@@ -170,4 +188,3 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     targetLanguage = message.targetLanguage;
   }
 });
-
