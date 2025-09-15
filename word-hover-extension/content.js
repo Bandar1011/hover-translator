@@ -32,14 +32,22 @@ function showTooltip(x, y, text, hiragana = '') {
     document.body.appendChild(tooltip);
   }
 
-  // Create the content for the tooltip, with hiragana on top if it exists.
+  // Create or get the content container
+  let contentContainer = tooltip.querySelector('.tooltip-content');
+  if (!contentContainer) {
+    contentContainer = document.createElement('div');
+    contentContainer.className = 'tooltip-content';
+    tooltip.appendChild(contentContainer);
+  }
+
+  // Update the content
   let tooltipContent = '';
   if (hiragana) {
     tooltipContent = `<div style="font-size: 13px; color: #ccc;">${hiragana}</div><div style="font-weight: bold;">${text}</div>`;
   } else {
     tooltipContent = `<div style="font-weight: bold;">${text}</div>`;
   }
-  tooltip.innerHTML = tooltipContent;
+  contentContainer.innerHTML = tooltipContent;
   
   tooltip.style.left = x + 10 + 'px';
   tooltip.style.top = y + 10 + 'px';
@@ -47,9 +55,10 @@ function showTooltip(x, y, text, hiragana = '') {
   
   // Add save button if this is a translation
   if (text !== 'Translating...' && text !== 'Translation failed' && text !== 'Translation error') {
-    const existingButton = tooltip.querySelector('.save-flashcard-btn');
-    if (existingButton) {
-        existingButton.remove();
+    // Remove existing save container if it exists
+    const existingContainer = tooltip.querySelector('.save-flashcard-container');
+    if (existingContainer) {
+        existingContainer.remove();
     }
 
     // Create container for save button and deck select
@@ -70,13 +79,17 @@ function showTooltip(x, y, text, hiragana = '') {
     deckSelect.className = 'deck-select';
     deckSelect.style.cssText = `
       display: none;
-      padding: 2px 4px;
-      font-size: 10px;
+      padding: 4px 6px;
+      font-size: 12px;
       border: 1px solid #ccc;
       border-radius: 3px;
       background: white;
+      color: black;
       cursor: pointer;
       max-width: 150px;
+      position: relative;
+      z-index: 100000;
+      margin-bottom: 5px;
     `;
 
     // Create save button
