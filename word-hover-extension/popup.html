@@ -195,6 +195,69 @@
             padding: 5px 10px;
             width: auto;
         }
+
+        /* Results Modal Styles */
+        .results-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+        }
+
+        .results-modal h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .results-stats {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .stat-item {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4CAF50;
+            transition: width 0.3s ease;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            width: auto;
+            padding: 8px 16px;
+        }
     </style>
 </head>
 <body>
@@ -280,6 +343,32 @@
         <div style="margin-top: 10px;">
             <span id="progressText">Card 1 of 10</span>
             <button id="finishStudy" style="margin-left: 10px;">Finish</button>
+        </div>
+    </div>
+
+    <!-- Results Modal -->
+    <div id="resultsModal" class="results-modal">
+        <h3>Study Session Results</h3>
+        <div class="results-stats">
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div class="stat-item">
+                <span>Success Rate:</span>
+                <span id="successRate">0%</span>
+            </div>
+            <div class="stat-item">
+                <span>Known Cards:</span>
+                <span id="knownCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span>Need Review:</span>
+                <span id="unknownCount">0</span>
+            </div>
+        </div>
+        <div class="modal-buttons">
+            <button id="continueStudy" class="know-btn">Continue</button>
+            <button id="finishStudySession" class="dont-know-btn">Finish</button>
         </div>
     </div>
     

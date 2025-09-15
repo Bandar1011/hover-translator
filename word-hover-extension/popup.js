@@ -294,7 +294,6 @@ function showCurrentCard() {
 }
 
 async function finishStudySession() {
-    // Update known status in storage
     try {
         const result = await chrome.storage.sync.get(['decks']);
         const decks = result.decks || [];
@@ -317,33 +316,46 @@ async function finishStudySession() {
         const percentage = Math.round((knownCount / totalCards) * 100);
         const unknownCount = totalCards - knownCount;
         
-        // Create results message
-        let resultsMessage = `ラウンド ${roundNumber} 完了!\n`;
-        resultsMessage += `正解率: ${percentage}%\n`;
-        resultsMessage += `知っている: ${knownCount}枚\n`;
-        resultsMessage += `知らない: ${unknownCount}枚\n`;
+        // Update results modal
+        const modal = document.getElementById('resultsModal');
+        document.getElementById('successRate').textContent = `${percentage}%`;
+        document.getElementById('knownCount').textContent = knownCount;
+        document.getElementById('unknownCount').textContent = unknownCount;
+        document.getElementById('progressFill').style.width = `${percentage}%`;
         
-        // Check if there are still unknown cards
+        // Show/hide appropriate buttons
+        const continueBtn = document.getElementById('continueStudy');
         if (unknownCount > 0) {
-            roundNumber++;
-            resultsMessage += '\n知らないカードで次のラウンドを開始します。';
+            continueBtn.style.display = 'block';
+            continueBtn.textContent = `Continue Round ${roundNumber + 1}`;
         } else {
-            roundNumber = 1;
-            resultsMessage += '\nおめでとうございます！全てのカードを習得しました！';
+            continueBtn.style.display = 'none';
         }
-
-        // Return to deck view
+        
+        // Hide study container and show modal
         document.getElementById('studyContainer').style.display = 'none';
-        document.getElementById('decksTab').style.display = 'block';
+        modal.style.display = 'block';
         
-        // Show results
-        showStatus(resultsMessage, 'success');
+        // Add event listeners for modal buttons
+        document.getElementById('continueStudy').onclick = () => {
+            modal.style.display = 'none';
+            roundNumber++;
+            startStudySession(currentDeck);
+        };
         
-        // Refresh deck list
-        await loadDecks();
+        document.getElementById('finishStudySession').onclick = async () => {
+            modal.style.display = 'none';
+            document.getElementById('decksTab').style.display = 'block';
+            if (unknownCount === 0) {
+                roundNumber = 1;
+                currentDeck.cards.forEach(card => card.known = false);
+            }
+            await loadDecks();
+        };
+        
     } catch (error) {
         console.error('Error saving study session:', error);
-        showStatus('エラーが発生しました', 'error');
+        showStatus('Error saving progress', 'error');
     }
 }
 
