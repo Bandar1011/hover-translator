@@ -5,6 +5,8 @@ let currentCardIndex = 0;
 let roundNumber = 1;
 let totalCards = 0;
 let knownCards = 0;
+let totalKnownCards = 0; // Track total known cards across all rounds
+let originalCardCount = 0; // Track the original number of cards
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT LISTENERS ---
@@ -75,8 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('knowBtn').addEventListener('click', () => {
-        if (currentCardIndex < studyCards.length - 1) {
+        if (!studyCards[currentCardIndex].known) {
             studyCards[currentCardIndex].known = true;
+            totalKnownCards++;
+        }
+        
+        if (currentCardIndex < studyCards.length - 1) {
             currentCardIndex++;
             showCurrentCard();
         } else {
@@ -233,8 +239,18 @@ async function updateDeckSelect() {
 
 function startStudySession(deck) {
     currentDeck = deck;
-    // Reset study session
-    studyCards = roundNumber === 1 ? [...deck.cards] : deck.cards.filter(card => !card.known);
+    
+    if (roundNumber === 1) {
+        // First round: reset everything
+        studyCards = [...deck.cards];
+        totalKnownCards = 0;
+        originalCardCount = deck.cards.length;
+        deck.cards.forEach(card => card.known = false);
+    } else {
+        // Subsequent rounds: only study unknown cards
+        studyCards = deck.cards.filter(card => !card.known);
+    }
+    
     currentCardIndex = 0;
     totalCards = studyCards.length;
     knownCards = 0;
@@ -242,10 +258,12 @@ function startStudySession(deck) {
     // If all cards are known, reset the deck
     if (studyCards.length === 0) {
         roundNumber = 1;
+        totalKnownCards = 0;
         deck.cards.forEach(card => card.known = false);
         studyCards = [...deck.cards];
         totalCards = studyCards.length;
-        showStatus('全てのカードを習得しました！新しいラウンドを開始します。', 'success');
+        originalCardCount = totalCards;
+        showStatus('All cards completed! Starting new session.', 'success');
     }
     
     // Hide other views and show study container
@@ -256,7 +274,7 @@ function startStudySession(deck) {
     studyContainer.style.display = 'block';
     
     // Update deck name and round number
-    document.getElementById('studyDeckName').textContent = `${deck.name} - ラウンド ${roundNumber}`;
+    document.getElementById('studyDeckName').textContent = `${deck.name} - Round ${roundNumber}`;
     
     // Show first card
     showCurrentCard();
@@ -311,15 +329,14 @@ async function finishStudySession() {
             await chrome.storage.sync.set({ decks: decks });
         }
 
-        // Calculate statistics
-        const knownCount = studyCards.filter(card => card.known).length;
-        const percentage = Math.round((knownCount / totalCards) * 100);
-        const unknownCount = totalCards - knownCount;
+        // Calculate statistics based on total progress
+        const percentage = Math.round((totalKnownCards / originalCardCount) * 100);
+        const unknownCount = originalCardCount - totalKnownCards;
         
         // Update results modal
         const modal = document.getElementById('resultsModal');
         document.getElementById('successRate').textContent = `${percentage}%`;
-        document.getElementById('knownCount').textContent = knownCount;
+        document.getElementById('knownCount').textContent = totalKnownCards;
         document.getElementById('unknownCount').textContent = unknownCount;
         document.getElementById('progressFill').style.width = `${percentage}%`;
         
