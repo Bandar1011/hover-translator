@@ -52,13 +52,38 @@ function showTooltip(x, y, text, hiragana = '') {
         existingButton.remove();
     }
 
+    // Create container for save button and deck select
+    const saveContainer = document.createElement('div');
+    saveContainer.className = 'save-flashcard-container';
+    saveContainer.style.cssText = `
+      position: absolute;
+      top: -30px;
+      right: -5px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+    `;
+
+    // Create deck select dropdown
+    const deckSelect = document.createElement('select');
+    deckSelect.className = 'deck-select';
+    deckSelect.style.cssText = `
+      display: none;
+      padding: 2px 4px;
+      font-size: 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      background: white;
+      cursor: pointer;
+      max-width: 150px;
+    `;
+
+    // Create save button
     const saveButton = document.createElement('button');
-    saveButton.textContent = 'Save';
+    saveButton.textContent = 'Add';
     saveButton.className = 'save-flashcard-btn';
     saveButton.style.cssText = `
-      position: absolute;
-      top: -20px;
-      right: -5px;
       background: #4CAF50;
       color: white;
       border: none;
@@ -68,24 +93,13 @@ function showTooltip(x, y, text, hiragana = '') {
       cursor: pointer;
     `;
     
+    // Add click handler for the save button
     saveButton.addEventListener('mousedown', async (e) => {
       e.stopPropagation();
-      const originalText = window.getSelection().toString().trim();
       
-      if (originalText) {
-        const newCard = {
-          id: String(Date.now()),
-          original: originalText,
-          translation: text,
-          hiragana: hiragana,
-          targetLanguage: targetLanguage,
-          createdAt: new Date().toISOString(),
-          known: false,
-          reviewCount: 0
-        };
-        
+      if (saveButton.textContent === 'Add') {
+        // Show deck selection
         try {
-          // Get all decks
           const result = await chrome.storage.sync.get(['decks']);
           const decks = result.decks || [];
           
@@ -96,33 +110,89 @@ function showTooltip(x, y, text, hiragana = '') {
               name: 'Deck 1',
               cards: []
             });
+            await chrome.storage.sync.set({ decks: decks });
           }
           
-          // Add card to the first deck (Deck 1)
-          decks[0].cards.push(newCard);
-          await chrome.storage.sync.set({ decks: decks });
-
-          // Notify popup about the new card
-          chrome.runtime.sendMessage({
-            action: 'flashcardSaved',
-            deckId: decks[0].id,
-            totalCount: decks[0].cards.length
+          // Populate deck select
+          deckSelect.innerHTML = '';
+          decks.forEach(deck => {
+            const option = document.createElement('option');
+            option.value = deck.id;
+            option.textContent = `${deck.name} (${deck.cards.length} cards)`;
+            deckSelect.appendChild(option);
           });
           
-          saveButton.textContent = '✓';
-          saveButton.disabled = true;
-          saveButton.style.background = '#45a049';
+          // Show deck select and change button text
+          deckSelect.style.display = 'block';
+          saveButton.textContent = 'Save';
         } catch (error) {
-          console.error('Error saving flashcard:', error);
-          saveButton.textContent = '✗';
+          console.error('Error loading decks:', error);
+        }
+      } else if (saveButton.textContent === 'Save') {
+        // Save to selected deck
+        const originalText = window.getSelection().toString().trim();
+        const selectedDeckId = deckSelect.value;
+        
+        if (originalText && selectedDeckId) {
+          const newCard = {
+            id: String(Date.now()),
+            original: originalText,
+            translation: text,
+            hiragana: hiragana,
+            targetLanguage: targetLanguage,
+            createdAt: new Date().toISOString(),
+            known: false,
+            reviewCount: 0
+          };
+          
+          try {
+            const result = await chrome.storage.sync.get(['decks']);
+            const decks = result.decks || [];
+            const deckIndex = decks.findIndex(d => d.id === selectedDeckId);
+            
+            if (deckIndex !== -1) {
+              decks[deckIndex].cards.push(newCard);
+              await chrome.storage.sync.set({ decks: decks });
+
+              // Notify popup about the new card
+              chrome.runtime.sendMessage({
+                action: 'flashcardSaved',
+                deckId: selectedDeckId,
+                totalCount: decks[deckIndex].cards.length
+              });
+              
+              saveButton.textContent = '✓';
+              saveButton.disabled = true;
+              saveButton.style.background = '#45a049';
+              deckSelect.style.display = 'none';
+            }
+          } catch (error) {
+            console.error('Error saving flashcard:', error);
+            saveButton.textContent = '✗';
+          }
         }
       }
     });
     
-    tooltip.appendChild(saveButton);
+    // Add elements to container and tooltip
+    saveContainer.appendChild(deckSelect);
+    saveContainer.appendChild(saveButton);
+    tooltip.appendChild(saveContainer);
     tooltip.style.pointerEvents = 'auto';
   }
 }
+
+// Hide deck select when clicking outside
+document.addEventListener('mousedown', (e) => {
+  const deckSelect = document.querySelector('.deck-select');
+  const saveButton = document.querySelector('.save-flashcard-btn');
+  if (deckSelect && saveButton && !e.target.closest('.save-flashcard-container')) {
+    deckSelect.style.display = 'none';
+    if (saveButton.textContent === 'Save') {
+      saveButton.textContent = 'Add';
+    }
+  }
+});
 
 function hideTooltip() {
   const tooltip = document.getElementById('word-hover-translation-tooltip');
