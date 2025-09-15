@@ -107,12 +107,9 @@ function showTooltip(x, y, text, hiragana = '') {
     `;
     
     // Add click handler for the save button
-    saveButton.addEventListener('mousedown', async (e) => {
+    saveButton.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
-      // Prevent the dropdown from hiding
-      e.target.closest('.save-flashcard-container').setAttribute('data-processing', 'true');
       
       if (saveButton.textContent === 'Add') {
         // Show deck selection
@@ -201,43 +198,25 @@ function showTooltip(x, y, text, hiragana = '') {
   }
 }
 
-// Hide deck select when clicking outside
+// Only hide dropdown when clicking the Add button again
 document.addEventListener('mousedown', (e) => {
-  // Don't hide if clicking the select, button, or any option in the select
-  if (e.target.closest('.deck-select') || 
-      e.target.closest('.save-flashcard-btn') || 
-      e.target.tagName === 'OPTION') {
-    return;
-  }
-  
-  // Don't hide if clicking inside the tooltip content
-  if (e.target.closest('.tooltip-content')) {
-    return;
-  }
-
-  const deckSelect = document.querySelector('.deck-select');
-  const saveButton = document.querySelector('.save-flashcard-btn');
-  
-  if (deckSelect && saveButton && saveButton.textContent === 'Save' && !saveButton.disabled) {
-    // Add a small delay before hiding to ensure click events are processed
-    setTimeout(() => {
-      if (!saveButton.disabled) { // Only hide if the save wasn't successful
-        deckSelect.style.display = 'none';
-        saveButton.textContent = 'Add';
-      }
-    }, 200);
+  const saveButton = e.target.closest('.save-flashcard-btn');
+  if (saveButton && saveButton.textContent === 'Add') {
+    const deckSelect = document.querySelector('.deck-select');
+    if (deckSelect && deckSelect.style.display === 'block') {
+      deckSelect.style.display = 'none';
+    }
   }
 });
 
 function hideTooltip() {
   const tooltip = document.getElementById('word-hover-translation-tooltip');
   if (tooltip) {
-    const saveContainer = tooltip.querySelector('.save-flashcard-container');
-    // Don't hide if we're in the middle of saving
-    if (saveContainer && saveContainer.getAttribute('data-processing') === 'true') {
-      return;
+    const saveButton = tooltip.querySelector('.save-flashcard-btn');
+    // Only hide the tooltip if we're not in the middle of selecting a deck
+    if (!saveButton || saveButton.textContent !== 'Save') {
+      tooltip.style.display = 'none';
     }
-    tooltip.style.display = 'none';
   }
 }
 
