@@ -107,9 +107,12 @@ function showTooltip(x, y, text, hiragana = '') {
     `;
     
     // Add click handler for the save button
-    saveButton.addEventListener('click', async (e) => {
+    saveButton.addEventListener('mousedown', async (e) => {
       e.preventDefault();
       e.stopPropagation();
+      
+      // Prevent the dropdown from hiding
+      e.target.closest('.save-flashcard-container').setAttribute('data-processing', 'true');
       
       if (saveButton.textContent === 'Add') {
         // Show deck selection
@@ -179,6 +182,8 @@ function showTooltip(x, y, text, hiragana = '') {
               saveButton.disabled = true;
               saveButton.style.background = '#45a049';
               deckSelect.style.display = 'none';
+              // Clear the processing state
+              saveContainer.removeAttribute('data-processing');
             }
           } catch (error) {
             console.error('Error saving flashcard:', error);
@@ -197,20 +202,41 @@ function showTooltip(x, y, text, hiragana = '') {
 }
 
 // Hide deck select when clicking outside
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.save-flashcard-container')) {
-    const deckSelect = document.querySelector('.deck-select');
-    const saveButton = document.querySelector('.save-flashcard-btn');
-    if (deckSelect && saveButton && saveButton.textContent === 'Save' && !saveButton.disabled) {
-      deckSelect.style.display = 'none';
-      saveButton.textContent = 'Add';
-    }
+document.addEventListener('mousedown', (e) => {
+  // Don't hide if clicking the select, button, or any option in the select
+  if (e.target.closest('.deck-select') || 
+      e.target.closest('.save-flashcard-btn') || 
+      e.target.tagName === 'OPTION') {
+    return;
   }
-}, true);
+  
+  // Don't hide if clicking inside the tooltip content
+  if (e.target.closest('.tooltip-content')) {
+    return;
+  }
+
+  const deckSelect = document.querySelector('.deck-select');
+  const saveButton = document.querySelector('.save-flashcard-btn');
+  
+  if (deckSelect && saveButton && saveButton.textContent === 'Save' && !saveButton.disabled) {
+    // Add a small delay before hiding to ensure click events are processed
+    setTimeout(() => {
+      if (!saveButton.disabled) { // Only hide if the save wasn't successful
+        deckSelect.style.display = 'none';
+        saveButton.textContent = 'Add';
+      }
+    }, 200);
+  }
+});
 
 function hideTooltip() {
   const tooltip = document.getElementById('word-hover-translation-tooltip');
   if (tooltip) {
+    const saveContainer = tooltip.querySelector('.save-flashcard-container');
+    // Don't hide if we're in the middle of saving
+    if (saveContainer && saveContainer.getAttribute('data-processing') === 'true') {
+      return;
+    }
     tooltip.style.display = 'none';
   }
 }
