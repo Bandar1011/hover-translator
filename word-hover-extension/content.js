@@ -94,7 +94,8 @@ function showTooltip(x, y, text, hiragana = '') {
     `;
     
     // Add click handler for the save button
-    saveButton.addEventListener('mousedown', async (e) => {
+    saveButton.addEventListener('click', async (e) => {
+      e.preventDefault();
       e.stopPropagation();
       
       if (saveButton.textContent === 'Add') {
@@ -183,16 +184,16 @@ function showTooltip(x, y, text, hiragana = '') {
 }
 
 // Hide deck select when clicking outside
-document.addEventListener('mousedown', (e) => {
-  const deckSelect = document.querySelector('.deck-select');
-  const saveButton = document.querySelector('.save-flashcard-btn');
-  if (deckSelect && saveButton && !e.target.closest('.save-flashcard-container')) {
-    deckSelect.style.display = 'none';
-    if (saveButton.textContent === 'Save') {
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.save-flashcard-container')) {
+    const deckSelect = document.querySelector('.deck-select');
+    const saveButton = document.querySelector('.save-flashcard-btn');
+    if (deckSelect && saveButton && saveButton.textContent === 'Save' && !saveButton.disabled) {
+      deckSelect.style.display = 'none';
       saveButton.textContent = 'Add';
     }
   }
-});
+}, true);
 
 function hideTooltip() {
   const tooltip = document.getElementById('word-hover-translation-tooltip');
@@ -249,7 +250,11 @@ document.addEventListener('mouseup', async (event) => {
   }
 });
 
-document.addEventListener('mousedown', hideTooltip);
+document.addEventListener('mousedown', (e) => {
+  if (!e.target.closest('.save-flashcard-container') && !e.target.closest('#word-hover-translation-tooltip')) {
+    hideTooltip();
+  }
+});
 document.addEventListener('scroll', hideTooltip);
 
 // Listen for language updates from popup
