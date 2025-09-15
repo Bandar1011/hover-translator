@@ -65,13 +65,12 @@ function showTooltip(x, y, text, hiragana = '') {
     const saveContainer = document.createElement('div');
     saveContainer.className = 'save-flashcard-container';
     saveContainer.style.cssText = `
-      position: absolute;
-      top: -30px;
-      right: -5px;
+      position: fixed;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
       gap: 5px;
+      z-index: 1000000;
     `;
 
     // Create deck select dropdown
@@ -86,11 +85,13 @@ function showTooltip(x, y, text, hiragana = '') {
       background: white;
       color: black;
       cursor: pointer;
-      max-width: 150px;
-      position: relative;
-      z-index: 100000;
+      min-width: 150px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
       margin-bottom: 5px;
     `;
+    
+    // Add the container to the body instead of the tooltip
+    document.body.appendChild(saveContainer);
 
     // Create save button
     const saveButton = document.createElement('button');
@@ -190,21 +191,39 @@ function showTooltip(x, y, text, hiragana = '') {
       }
     });
     
-    // Add elements to container and tooltip
+    // Position the container near the tooltip
+    const tooltipRect = tooltip.getBoundingClientRect();
+    saveContainer.style.top = (tooltipRect.top - 40) + 'px';
+    saveContainer.style.left = (tooltipRect.right - 160) + 'px';
+
+    // Add elements to container
     saveContainer.appendChild(deckSelect);
     saveContainer.appendChild(saveButton);
-    tooltip.appendChild(saveContainer);
     tooltip.style.pointerEvents = 'auto';
   }
 }
 
-// Only hide dropdown when clicking the Add button again
+// Handle clicks outside the save container
 document.addEventListener('mousedown', (e) => {
-  const saveButton = e.target.closest('.save-flashcard-btn');
-  if (saveButton && saveButton.textContent === 'Add') {
-    const deckSelect = document.querySelector('.deck-select');
+  const saveContainer = document.querySelector('.save-flashcard-container');
+  if (!saveContainer) return;
+
+  const deckSelect = saveContainer.querySelector('.deck-select');
+  const saveButton = saveContainer.querySelector('.save-flashcard-btn');
+  
+  // If clicking the Add button while dropdown is visible, hide it
+  if (e.target.closest('.save-flashcard-btn') && saveButton.textContent === 'Add') {
     if (deckSelect && deckSelect.style.display === 'block') {
       deckSelect.style.display = 'none';
+    }
+    return;
+  }
+  
+  // If clicking outside while dropdown is visible, ignore the click
+  if (deckSelect && deckSelect.style.display === 'block') {
+    if (!e.target.closest('.save-flashcard-container')) {
+      e.preventDefault();
+      e.stopPropagation();
     }
   }
 });
@@ -213,11 +232,17 @@ function hideTooltip() {
   const tooltip = document.getElementById('word-hover-translation-tooltip');
   if (!tooltip) return;
 
-  const deckSelect = tooltip.querySelector('.deck-select');
+  const saveContainer = document.querySelector('.save-flashcard-container');
+  const deckSelect = saveContainer?.querySelector('.deck-select');
   
   // Never hide if the deck select is visible
   if (deckSelect && deckSelect.style.display === 'block') {
     return;
+  }
+  
+  // Remove the save container if it exists
+  if (saveContainer) {
+    saveContainer.remove();
   }
   
   tooltip.style.display = 'none';
