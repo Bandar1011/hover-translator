@@ -2,6 +2,9 @@
 let currentDeck = null;
 let studyCards = [];
 let currentCardIndex = 0;
+let roundNumber = 1;
+let totalCards = 0;
+let knownCards = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT LISTENERS ---
@@ -231,8 +234,19 @@ async function updateDeckSelect() {
 function startStudySession(deck) {
     currentDeck = deck;
     // Reset study session
-    studyCards = [...deck.cards];
+    studyCards = roundNumber === 1 ? [...deck.cards] : deck.cards.filter(card => !card.known);
     currentCardIndex = 0;
+    totalCards = studyCards.length;
+    knownCards = 0;
+    
+    // If all cards are known, reset the deck
+    if (studyCards.length === 0) {
+        roundNumber = 1;
+        deck.cards.forEach(card => card.known = false);
+        studyCards = [...deck.cards];
+        totalCards = studyCards.length;
+        showStatus('全てのカードを習得しました！新しいラウンドを開始します。', 'success');
+    }
     
     // Hide other views and show study container
     document.querySelectorAll('.tab-content').forEach(content => {
@@ -241,8 +255,8 @@ function startStudySession(deck) {
     const studyContainer = document.getElementById('studyContainer');
     studyContainer.style.display = 'block';
     
-    // Update deck name
-    document.getElementById('studyDeckName').textContent = deck.name;
+    // Update deck name and round number
+    document.getElementById('studyDeckName').textContent = `${deck.name} - ラウンド ${roundNumber}`;
     
     // Show first card
     showCurrentCard();
@@ -298,19 +312,38 @@ async function finishStudySession() {
             await chrome.storage.sync.set({ decks: decks });
         }
 
+        // Calculate statistics
+        const knownCount = studyCards.filter(card => card.known).length;
+        const percentage = Math.round((knownCount / totalCards) * 100);
+        const unknownCount = totalCards - knownCount;
+        
+        // Create results message
+        let resultsMessage = `ラウンド ${roundNumber} 完了!\n`;
+        resultsMessage += `正解率: ${percentage}%\n`;
+        resultsMessage += `知っている: ${knownCount}枚\n`;
+        resultsMessage += `知らない: ${unknownCount}枚\n`;
+        
+        // Check if there are still unknown cards
+        if (unknownCount > 0) {
+            roundNumber++;
+            resultsMessage += '\n知らないカードで次のラウンドを開始します。';
+        } else {
+            roundNumber = 1;
+            resultsMessage += '\nおめでとうございます！全てのカードを習得しました！';
+        }
+
         // Return to deck view
         document.getElementById('studyContainer').style.display = 'none';
         document.getElementById('decksTab').style.display = 'block';
         
         // Show results
-        const knownCount = studyCards.filter(card => card.known).length;
-        showStatus(`Study session complete! You knew ${knownCount} out of ${studyCards.length} cards.`, 'success');
+        showStatus(resultsMessage, 'success');
         
         // Refresh deck list
         await loadDecks();
     } catch (error) {
         console.error('Error saving study session:', error);
-        showStatus('Error saving progress', 'error');
+        showStatus('エラーが発生しました', 'error');
     }
 }
 
@@ -319,10 +352,15 @@ async function finishStudySession() {
 function showStatus(message, type) {
     const statusDiv = document.getElementById('status');
     if (statusDiv) {
-        statusDiv.textContent = message;
+        statusDiv.innerHTML = message.replace(/\n/g, '<br>');
         statusDiv.className = `status ${type}`;
         statusDiv.style.display = 'block';
-        setTimeout(() => { statusDiv.style.display = 'none'; }, 2000);
+        
+        // For study session results, show the message longer
+        const isStudyResult = message.includes('ラウンド') && message.includes('正解率');
+        const timeout = isStudyResult ? 5000 : 2000;
+        
+        setTimeout(() => { statusDiv.style.display = 'none'; }, timeout);
     }
 }
 
