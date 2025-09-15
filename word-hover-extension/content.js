@@ -211,13 +211,16 @@ document.addEventListener('mousedown', (e) => {
 
 function hideTooltip() {
   const tooltip = document.getElementById('word-hover-translation-tooltip');
-  if (tooltip) {
-    const saveButton = tooltip.querySelector('.save-flashcard-btn');
-    // Only hide the tooltip if we're not in the middle of selecting a deck
-    if (!saveButton || saveButton.textContent !== 'Save') {
-      tooltip.style.display = 'none';
-    }
+  if (!tooltip) return;
+
+  const deckSelect = tooltip.querySelector('.deck-select');
+  
+  // Never hide if the deck select is visible
+  if (deckSelect && deckSelect.style.display === 'block') {
+    return;
   }
+  
+  tooltip.style.display = 'none';
 }
 
 let debounceTimer; // Timer for debouncing API requests
@@ -269,11 +272,38 @@ document.addEventListener('mouseup', async (event) => {
 });
 
 document.addEventListener('mousedown', (e) => {
-  if (!e.target.closest('.save-flashcard-container') && !e.target.closest('#word-hover-translation-tooltip')) {
-    hideTooltip();
+  const tooltip = document.getElementById('word-hover-translation-tooltip');
+  if (!tooltip) return;
+
+  const saveButton = tooltip.querySelector('.save-flashcard-btn');
+  const deckSelect = tooltip.querySelector('.deck-select');
+  
+  // If we're in the process of selecting a deck (dropdown is visible), don't hide anything
+  if (deckSelect && deckSelect.style.display === 'block') {
+    return;
   }
+
+  // If we click inside the tooltip or save container, don't hide
+  if (e.target.closest('.save-flashcard-container') || e.target.closest('#word-hover-translation-tooltip')) {
+    return;
+  }
+
+  // Otherwise, hide the tooltip
+  tooltip.style.display = 'none';
 });
-document.addEventListener('scroll', hideTooltip);
+
+// Only hide on scroll if we're not selecting a deck
+document.addEventListener('scroll', () => {
+  const tooltip = document.getElementById('word-hover-translation-tooltip');
+  if (!tooltip) return;
+
+  const deckSelect = tooltip.querySelector('.deck-select');
+  if (deckSelect && deckSelect.style.display === 'block') {
+    return;
+  }
+
+  tooltip.style.display = 'none';
+});
 
 // Listen for language updates from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
