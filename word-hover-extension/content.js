@@ -17,9 +17,9 @@ let targetLanguage = 'English'; // default language
 })();
 
 // Global variables to track tooltip position
-let tooltipXOffset = 0;
-let tooltipYOffset = 0;
 let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
 
 function showTooltip(x, y, text, hiragana = '') {
   let tooltip = document.getElementById('word-hover-translation-tooltip');
@@ -34,45 +34,47 @@ function showTooltip(x, y, text, hiragana = '') {
     tooltip.style.zIndex = 99999;
     tooltip.style.fontSize = '16px';
     tooltip.style.textAlign = 'center';
-    tooltip.style.cursor = 'move';
+    tooltip.style.cursor = 'grab';
     tooltip.style.userSelect = 'none';
     tooltip.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
     document.body.appendChild(tooltip);
 
     // Add drag functionality
-    let currentX;
-    let currentY;
-    let initialX;
-    let initialY;
-
     tooltip.addEventListener('mousedown', (e) => {
       if (e.target.closest('.save-flashcard-container')) return;
       
-      initialX = e.clientX - tooltipXOffset;
-      initialY = e.clientY - tooltipYOffset;
-
-      if (e.target === tooltip) {
-        isDragging = true;
-      }
+      isDragging = true;
+      dragStartX = e.clientX - tooltip.offsetLeft;
+      dragStartY = e.clientY - tooltip.offsetTop;
+      
+      tooltip.style.cursor = 'grabbing';
     });
 
     document.addEventListener('mousemove', (e) => {
-      if (isDragging) {
-        e.preventDefault();
-        currentX = e.clientX - initialX;
-        currentY = e.clientY - initialY;
-
-        tooltipXOffset = currentX;
-        tooltipYOffset = currentY;
-
-        setTranslate(currentX, currentY, tooltip);
-      }
+      if (!isDragging) return;
+      
+      e.preventDefault();
+      
+      const newX = e.clientX - dragStartX;
+      const newY = e.clientY - dragStartY;
+      
+      // Keep tooltip within viewport bounds
+      const rect = tooltip.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      const boundedX = Math.min(Math.max(newX, 0), viewportWidth - rect.width);
+      const boundedY = Math.min(Math.max(newY, 0), viewportHeight - rect.height);
+      
+      tooltip.style.left = boundedX + 'px';
+      tooltip.style.top = boundedY + 'px';
     });
 
     document.addEventListener('mouseup', () => {
-      initialX = currentX;
-      initialY = currentY;
-      isDragging = false;
+      if (isDragging) {
+        isDragging = false;
+        tooltip.style.cursor = 'grab';
+      }
     });
   }
 
@@ -93,38 +95,35 @@ function showTooltip(x, y, text, hiragana = '') {
   }
   contentContainer.innerHTML = tooltipContent;
   
-  // Only set initial position if tooltip is not visible or has no position
-  if (tooltip.style.display === 'none' || (!tooltipXOffset && !tooltipYOffset)) {
-    // Get tooltip dimensions
+  // Only update position if not being dragged
+  if (!isDragging) {
     const tooltipRect = tooltip.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    // Calculate position to keep tooltip within viewport
+    // Start with position near the selected text
     let left = x + 10;
     let top = y + 10;
 
-    // Adjust horizontal position if needed
-    if (left + tooltipRect.width > viewportWidth) {
+    // If tooltip would go off right edge, place it to the left of the cursor
+    if (left + tooltipRect.width > viewportWidth - 10) {
       left = x - tooltipRect.width - 10;
     }
 
-    // Adjust vertical position if needed
-    if (top + tooltipRect.height > viewportHeight) {
+    // If tooltip would go off bottom edge, place it above the cursor
+    if (top + tooltipRect.height > viewportHeight - 10) {
       top = y - tooltipRect.height - 10;
     }
 
-    // Ensure tooltip doesn't go off the left or top edge
-    left = Math.max(10, left);
-    top = Math.max(10, top);
+    // Ensure tooltip stays within viewport bounds
+    left = Math.min(Math.max(left, 10), viewportWidth - tooltipRect.width - 10);
+    top = Math.min(Math.max(top, 10), viewportHeight - tooltipRect.height - 10);
 
-    // Update the offset values
-    tooltipXOffset = left - x;
-    tooltipYOffset = top - y;
+    // Apply the position
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
   }
 
-  // Always apply the current position
-  setTranslate(tooltipXOffset, tooltipYOffset, tooltip);
   tooltip.style.display = 'block';
   
   // Add save button if this is a translation
@@ -416,29 +415,6 @@ document.addEventListener('scroll', () => {
 
   tooltip.style.display = 'none';
 });
-
-// Helper function for dragging
-function setTranslate(xPos, yPos, el) {
-  // Get viewport dimensions
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
-  const rect = el.getBoundingClientRect();
-
-  // Keep tooltip within viewport bounds
-  xPos = Math.min(Math.max(xPos, 0), viewportWidth - rect.width);
-  yPos = Math.min(Math.max(yPos, 0), viewportHeight - rect.height);
-
-  // Store the position in the element's dataset
-  el.dataset.xPos = xPos;
-  el.dataset.yPos = yPos;
-
-  // Apply the transform
-  el.style.transform = 'translate3d(' + xPos + 'px, ' + yPos + 'px, 0)';
-  
-  // Update global offsets to match
-  tooltipXOffset = xPos;
-  tooltipYOffset = yPos;
-}
 
 // Listen for language updates from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
