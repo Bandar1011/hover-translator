@@ -93,8 +93,8 @@ function showTooltip(x, y, text, hiragana = '') {
   }
   contentContainer.innerHTML = tooltipContent;
   
-  // Only set initial position if not being dragged
-  if (!isDragging) {
+  // Only set initial position if tooltip is not visible or has no position
+  if (tooltip.style.display === 'none' || (!tooltipXOffset && !tooltipYOffset)) {
     // Get tooltip dimensions
     const tooltipRect = tooltip.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
@@ -121,11 +121,10 @@ function showTooltip(x, y, text, hiragana = '') {
     // Update the offset values
     tooltipXOffset = left - x;
     tooltipYOffset = top - y;
-
-    // Apply the position
-    setTranslate(tooltipXOffset, tooltipYOffset, tooltip);
   }
 
+  // Always apply the current position
+  setTranslate(tooltipXOffset, tooltipYOffset, tooltip);
   tooltip.style.display = 'block';
   
   // Add save button if this is a translation
@@ -340,6 +339,13 @@ document.addEventListener('mouseup', async (event) => {
       return;
     }
     
+    // Clear any existing tooltip position if this is a new selection
+    const existingTooltip = document.getElementById('word-hover-translation-tooltip');
+    if (existingTooltip && existingTooltip.style.display === 'none') {
+      tooltipXOffset = 0;
+      tooltipYOffset = 0;
+    }
+    
     // Show "Translating..." immediately for responsiveness
     showTooltip(event.clientX, event.clientY, 'Translating...');
     
@@ -422,7 +428,16 @@ function setTranslate(xPos, yPos, el) {
   xPos = Math.min(Math.max(xPos, 0), viewportWidth - rect.width);
   yPos = Math.min(Math.max(yPos, 0), viewportHeight - rect.height);
 
+  // Store the position in the element's dataset
+  el.dataset.xPos = xPos;
+  el.dataset.yPos = yPos;
+
+  // Apply the transform
   el.style.transform = 'translate3d(' + xPos + 'px, ' + yPos + 'px, 0)';
+  
+  // Update global offsets to match
+  tooltipXOffset = xPos;
+  tooltipYOffset = yPos;
 }
 
 // Listen for language updates from popup
