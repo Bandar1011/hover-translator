@@ -16,6 +16,11 @@ let targetLanguage = 'English'; // default language
   }
 })();
 
+// Global variables to track tooltip position
+let tooltipXOffset = 0;
+let tooltipYOffset = 0;
+let isDragging = false;
+
 function showTooltip(x, y, text, hiragana = '') {
   let tooltip = document.getElementById('word-hover-translation-tooltip');
   if (!tooltip) {
@@ -35,19 +40,16 @@ function showTooltip(x, y, text, hiragana = '') {
     document.body.appendChild(tooltip);
 
     // Add drag functionality
-    let isDragging = false;
     let currentX;
     let currentY;
     let initialX;
     let initialY;
-    let xOffset = 0;
-    let yOffset = 0;
 
     tooltip.addEventListener('mousedown', (e) => {
       if (e.target.closest('.save-flashcard-container')) return;
       
-      initialX = e.clientX - xOffset;
-      initialY = e.clientY - yOffset;
+      initialX = e.clientX - tooltipXOffset;
+      initialY = e.clientY - tooltipYOffset;
 
       if (e.target === tooltip) {
         isDragging = true;
@@ -60,8 +62,8 @@ function showTooltip(x, y, text, hiragana = '') {
         currentX = e.clientX - initialX;
         currentY = e.clientY - initialY;
 
-        xOffset = currentX;
-        yOffset = currentY;
+        tooltipXOffset = currentX;
+        tooltipYOffset = currentY;
 
         setTranslate(currentX, currentY, tooltip);
       }
@@ -91,32 +93,39 @@ function showTooltip(x, y, text, hiragana = '') {
   }
   contentContainer.innerHTML = tooltipContent;
   
-  // Get tooltip dimensions
-  const tooltipRect = tooltip.getBoundingClientRect();
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
+  // Only set initial position if not being dragged
+  if (!isDragging) {
+    // Get tooltip dimensions
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
-  // Calculate position to keep tooltip within viewport
-  let left = x + 10;
-  let top = y + 10;
+    // Calculate position to keep tooltip within viewport
+    let left = x + 10;
+    let top = y + 10;
 
-  // Adjust horizontal position if needed
-  if (left + tooltipRect.width > viewportWidth) {
-    left = x - tooltipRect.width - 10;
+    // Adjust horizontal position if needed
+    if (left + tooltipRect.width > viewportWidth) {
+      left = x - tooltipRect.width - 10;
+    }
+
+    // Adjust vertical position if needed
+    if (top + tooltipRect.height > viewportHeight) {
+      top = y - tooltipRect.height - 10;
+    }
+
+    // Ensure tooltip doesn't go off the left or top edge
+    left = Math.max(10, left);
+    top = Math.max(10, top);
+
+    // Update the offset values
+    tooltipXOffset = left - x;
+    tooltipYOffset = top - y;
+
+    // Apply the position
+    setTranslate(tooltipXOffset, tooltipYOffset, tooltip);
   }
 
-  // Adjust vertical position if needed
-  if (top + tooltipRect.height > viewportHeight) {
-    top = y - tooltipRect.height - 10;
-  }
-
-  // Ensure tooltip doesn't go off the left or top edge
-  left = Math.max(10, left);
-  top = Math.max(10, top);
-
-  tooltip.style.transform = '';
-  tooltip.style.left = left + 'px';
-  tooltip.style.top = top + 'px';
   tooltip.style.display = 'block';
   
   // Add save button if this is a translation
@@ -311,7 +320,13 @@ function hideTooltip() {
     saveContainer.remove();
   }
   
-  tooltip.style.display = 'none';
+  // Only reset position if we're actually hiding the tooltip
+  if (tooltip.style.display !== 'none') {
+    tooltipXOffset = 0;
+    tooltipYOffset = 0;
+    tooltip.style.transform = '';
+    tooltip.style.display = 'none';
+  }
 }
 
 let debounceTimer; // Timer for debouncing API requests
