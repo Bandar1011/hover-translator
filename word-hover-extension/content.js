@@ -193,21 +193,31 @@ function showTooltip(x, y, text, hiragana = '') {
       display: none;
       padding: 8px 12px;
       font-size: 14px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 8px;
-      background: white;
-      color: #1e293b;
+      background: rgba(23, 23, 23, 0.98);
+      color: #ffffff;
       cursor: pointer;
       min-width: 180px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       margin-bottom: 4px;
       appearance: none;
-      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23424242%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
       background-repeat: no-repeat;
       background-position: right 12px top 50%;
       background-size: 10px auto;
       transition: all 0.2s ease;
     `;
+
+    // Add hover effect for select
+    deckSelect.addEventListener('mouseover', () => {
+      deckSelect.style.background = 'rgba(32, 32, 32, 0.98)';
+      deckSelect.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+    });
+    deckSelect.addEventListener('mouseout', () => {
+      deckSelect.style.background = 'rgba(23, 23, 23, 0.98)';
+      deckSelect.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+    });
     
     // Add the container to the body instead of the tooltip
     document.body.appendChild(saveContainer);
@@ -217,9 +227,9 @@ function showTooltip(x, y, text, hiragana = '') {
     saveButton.textContent = 'Add';
     saveButton.className = 'save-flashcard-btn';
     saveButton.style.cssText = `
-      background: #10b981;
+      background: rgba(23, 23, 23, 0.98);
       color: white;
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 8px;
       padding: 8px 16px;
       font-size: 14px;
@@ -235,11 +245,13 @@ function showTooltip(x, y, text, hiragana = '') {
 
     // Add hover effects
     saveButton.addEventListener('mouseover', () => {
-      saveButton.style.background = '#059669';
+      saveButton.style.background = 'rgba(32, 32, 32, 0.98)';
+      saveButton.style.borderColor = 'rgba(255, 255, 255, 0.2)';
       saveButton.style.transform = 'translateY(-1px)';
     });
     saveButton.addEventListener('mouseout', () => {
-      saveButton.style.background = '#10b981';
+      saveButton.style.background = 'rgba(23, 23, 23, 0.98)';
+      saveButton.style.borderColor = 'rgba(255, 255, 255, 0.1)';
       saveButton.style.transform = 'translateY(0)';
     });
     
@@ -319,7 +331,7 @@ function showTooltip(x, y, text, hiragana = '') {
                 Saved
               `;
               saveButton.disabled = true;
-              saveButton.style.background = '#10b981';
+              saveButton.style.background = '#1a1a1a';
               saveButton.style.display = 'flex';
               saveButton.style.alignItems = 'center';
               saveButton.style.justifyContent = 'center';
@@ -338,7 +350,7 @@ function showTooltip(x, y, text, hiragana = '') {
               </svg>
               Error
             `;
-            saveButton.style.background = '#ef4444';
+            saveButton.style.background = '#1a1a1a';
             saveButton.style.display = 'flex';
             saveButton.style.alignItems = 'center';
             saveButton.style.justifyContent = 'center';
@@ -473,8 +485,8 @@ document.addEventListener('mousedown', (e) => {
   const tooltip = document.getElementById('word-hover-translation-tooltip');
   if (!tooltip) return;
 
-  const saveButton = tooltip.querySelector('.save-flashcard-btn');
-  const deckSelect = tooltip.querySelector('.deck-select');
+  const saveContainer = document.querySelector('.save-flashcard-container');
+  const deckSelect = saveContainer?.querySelector('.deck-select');
   
   // If we're in the process of selecting a deck (dropdown is visible), don't hide anything
   if (deckSelect && deckSelect.style.display === 'block') {
@@ -486,8 +498,8 @@ document.addEventListener('mousedown', (e) => {
     return;
   }
 
-  // Otherwise, hide the tooltip
-  tooltip.style.display = 'none';
+  // Otherwise, hide both the tooltip and save container
+  hideTooltip();
 });
 
 // Only hide on scroll if we're not selecting a deck
