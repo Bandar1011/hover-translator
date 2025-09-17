@@ -217,7 +217,7 @@ function showTooltip(x, y, text, hiragana = '') {
     saveButton.textContent = 'Add';
     saveButton.className = 'save-flashcard-btn';
     saveButton.style.cssText = `
-      background: #3b82f6;
+      background: #10b981;
       color: white;
       border: none;
       border-radius: 8px;
@@ -226,16 +226,20 @@ function showTooltip(x, y, text, hiragana = '') {
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
     `;
 
     // Add hover effects
     saveButton.addEventListener('mouseover', () => {
-      saveButton.style.background = '#2563eb';
+      saveButton.style.background = '#059669';
       saveButton.style.transform = 'translateY(-1px)';
     });
     saveButton.addEventListener('mouseout', () => {
-      saveButton.style.background = '#3b82f6';
+      saveButton.style.background = '#10b981';
       saveButton.style.transform = 'translateY(0)';
     });
     
