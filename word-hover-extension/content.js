@@ -448,11 +448,10 @@ document.addEventListener('mouseup', async (event) => {
       return;
     }
     
-    // Clear any existing tooltip position if this is a new selection
+    // Remove any existing tooltip
     const existingTooltip = document.getElementById('word-hover-translation-tooltip');
-    if (existingTooltip && existingTooltip.style.display === 'none') {
-      tooltipXOffset = 0;
-      tooltipYOffset = 0;
+    if (existingTooltip) {
+      existingTooltip.remove();
     }
     
     // Show "Translating..." immediately for responsiveness
