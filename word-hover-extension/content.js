@@ -27,8 +27,8 @@ function showTooltip(x, y, text, hiragana = '') {
     tooltip = document.createElement('div');
     tooltip.id = 'word-hover-translation-tooltip';
     tooltip.style.position = 'fixed';
-    tooltip.style.background = 'rgba(255, 255, 255, 0.98)';
-    tooltip.style.color = '#2c3e50';
+    tooltip.style.background = 'rgba(23, 23, 23, 0.98)';
+    tooltip.style.color = '#ffffff';
     tooltip.style.padding = '12px 16px';
     tooltip.style.borderRadius = '12px';
     tooltip.style.zIndex = 99999;
@@ -36,9 +36,9 @@ function showTooltip(x, y, text, hiragana = '') {
     tooltip.style.textAlign = 'center';
     tooltip.style.cursor = 'grab';
     tooltip.style.userSelect = 'none';
-    tooltip.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.1)';
+    tooltip.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.3)';
     tooltip.style.backdropFilter = 'blur(10px)';
-    tooltip.style.border = '1px solid rgba(226, 232, 240, 0.8)';
+    tooltip.style.border = '1px solid rgba(255, 255, 255, 0.1)';
     tooltip.style.minWidth = '200px';
     document.body.appendChild(tooltip);
 
@@ -93,12 +93,12 @@ function showTooltip(x, y, text, hiragana = '') {
   let tooltipContent = '';
   if (hiragana) {
     tooltipContent = `
-      <div style="font-size: 14px; color: #94a3b8; margin-bottom: 4px; font-weight: 500;">${hiragana}</div>
-      <div style="font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 2px;">${text}</div>
+      <div style="font-size: 14px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px; font-weight: 500;">${hiragana}</div>
+      <div style="font-size: 18px; font-weight: 600; color: #ffffff; margin-bottom: 2px;">${text}</div>
     `;
   } else {
     tooltipContent = `
-      <div style="font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 2px;">${text}</div>
+      <div style="font-size: 18px; font-weight: 600; color: #ffffff; margin-bottom: 2px;">${text}</div>
     `;
   }
   
@@ -106,11 +106,11 @@ function showTooltip(x, y, text, hiragana = '') {
   if (text === 'Translating...') {
     tooltipContent = `
       <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-        <div style="font-size: 16px; color: #64748b;">${text}</div>
+        <div style="font-size: 16px; color: rgba(255, 255, 255, 0.7);">${text}</div>
         <div style="display: flex; gap: 3px;">
-          <div style="width: 4px; height: 4px; background: #64748b; border-radius: 50%; animation: dot 1s infinite ease-in-out alternate;"></div>
-          <div style="width: 4px; height: 4px; background: #64748b; border-radius: 50%; animation: dot 1s infinite ease-in-out alternate 0.2s;"></div>
-          <div style="width: 4px; height: 4px; background: #64748b; border-radius: 50%; animation: dot 1s infinite ease-in-out alternate 0.4s;"></div>
+          <div style="width: 4px; height: 4px; background: rgba(255, 255, 255, 0.7); border-radius: 50%; animation: dot 1s infinite ease-in-out alternate;"></div>
+          <div style="width: 4px; height: 4px; background: rgba(255, 255, 255, 0.7); border-radius: 50%; animation: dot 1s infinite ease-in-out alternate 0.2s;"></div>
+          <div style="width: 4px; height: 4px; background: rgba(255, 255, 255, 0.7); border-radius: 50%; animation: dot 1s infinite ease-in-out alternate 0.4s;"></div>
         </div>
       </div>
       <style>
@@ -402,20 +402,23 @@ function hideTooltip() {
     saveContainer.remove();
   }
   
-  // Only reset position if we're actually hiding the tooltip
-  if (tooltip.style.display !== 'none') {
-    tooltipXOffset = 0;
-    tooltipYOffset = 0;
-    tooltip.style.transform = '';
-    tooltip.style.display = 'none';
-  }
+  // Reset selection and hide tooltip
+  lastSelection = '';
+  tooltip.style.display = 'none';
 }
 
 let debounceTimer; // Timer for debouncing API requests
+// Store the last selection to compare with new ones
+let lastSelection = '';
+
 document.addEventListener('mouseup', async (event) => {
   const selection = window.getSelection();
-  if (selection && selection.toString().trim().length > 0) {
-    const highlightedText = selection.toString().trim();
+  const currentSelection = selection.toString().trim();
+  
+  // Only proceed if we have a new, non-empty selection that's different from the last one
+  if (selection && currentSelection.length > 0 && currentSelection !== lastSelection) {
+    lastSelection = currentSelection;
+    const highlightedText = currentSelection;
     
     if (highlightedText.length > 500) {
       hideTooltip();
