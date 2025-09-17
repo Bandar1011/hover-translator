@@ -3,72 +3,117 @@
 <head>
     <style>
         body {
-            width: 300px;
+            width: 320px;
             padding: 20px;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #171717;
+            color: #ffffff;
+            margin: 0;
+        }
+        
+        h2 {
+            margin-top: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 16px;
         }
         .config-group {
             margin-bottom: 15px;
         }
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
         }
         select {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
             box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            font-size: 14px;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px top 50%;
+            background-size: 10px auto;
+            transition: all 0.2s ease;
+        }
+        select:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background-color: rgba(255, 255, 255, 0.08);
         }
         button {
             width: 100%;
-            padding: 10px;
-            background: #4CAF50;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
             color: white;
-            border: none;
-            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         button:hover {
-            background: #45a049;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
         }
         .status {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 4px;
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
             text-align: center;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: rgba(22, 163, 74, 0.1);
+            color: #4ade80;
+            border: 1px solid rgba(74, 222, 128, 0.2);
         }
         .info {
-            background: #e7f3ff;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            font-size: 12px;
-            color: #0066cc;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            line-height: 1.5;
         }
         
         /* Deck Management Styles */
         .deck-list {
             margin: 15px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
         }
         
         .deck-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px;
-            border-bottom: 1px solid #eee;
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .deck-item:hover {
+            background: rgba(255, 255, 255, 0.05);
         }
         
         .deck-item:last-child {
@@ -76,24 +121,33 @@
         }
         
         .deck-name {
-            font-weight: bold;
+            font-weight: 500;
             flex-grow: 1;
+            color: #ffffff;
         }
         
         .deck-count {
-            color: #666;
-            margin-right: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-right: 12px;
+            font-size: 14px;
         }
         
         .study-btn {
-            background: #4CAF50;
+            background: rgba(255, 255, 255, 0.05);
             color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             width: auto;
+            transition: all 0.2s ease;
+        }
+        
+        .study-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
         }
         
         /* Study Mode Styles */
@@ -104,96 +158,156 @@
         
         .study-card {
             min-height: 150px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
             margin: 15px 0;
-            padding: 20px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: white;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .study-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.03);
+            transform: translateY(-1px);
         }
         
         .study-buttons {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 12px;
+            margin-top: 20px;
         }
         
         .know-btn {
-            background: #4CAF50;
+            background: rgba(22, 163, 74, 0.2);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            color: #4ade80;
             width: 45%;
         }
         
+        .know-btn:hover {
+            background: rgba(22, 163, 74, 0.3);
+            border-color: rgba(74, 222, 128, 0.3);
+        }
+        
         .dont-know-btn {
-            background: #f44336;
+            background: rgba(220, 38, 38, 0.2);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            color: #f87171;
             width: 45%;
+        }
+        
+        .dont-know-btn:hover {
+            background: rgba(220, 38, 38, 0.3);
+            border-color: rgba(248, 113, 113, 0.3);
         }
         
         /* Add Flashcard Form Styles */
         .add-flashcard-form {
             margin-top: 15px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
         }
         
         .form-group {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         
         .form-group input, .form-group select {
             width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 10px 12px;
+            margin-top: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
             box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .form-group input:hover, .form-group select:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
         }
         
         .tab-buttons {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 12px;
+            margin-bottom: 20px;
         }
         
         .tab-btn {
             flex: 1;
-            padding: 8px;
-            border: 1px solid #ddd;
-            background: #f5f5f5;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.02);
+            color: rgba(255, 255, 255, 0.7);
             cursor: pointer;
             font-size: 14px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
         }
         
         .tab-btn.active {
-            background: #4CAF50;
-            color: white;
-            border-color: #4CAF50;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.2);
+            font-weight: 500;
         }
 
         .card-content {
-            font-size: 18px;
+            font-size: 20px;
             text-align: center;
+            color: #ffffff;
+            font-weight: 500;
+            line-height: 1.4;
         }
 
         .hiragana-text {
             font-size: 14px;
-            color: #666;
-            margin-top: 5px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 8px;
         }
 
         #progressText {
-            color: #666;
+            color: rgba(255, 255, 255, 0.5);
             font-size: 14px;
         }
 
         #finishStudy {
-            background: #2196F3;
-            font-size: 12px;
-            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+            padding: 6px 12px;
             width: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            margin-left: 12px;
+            transition: all 0.2s ease;
+        }
+
+        #finishStudy:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
         }
 
         /* Results Modal Styles */
@@ -203,60 +317,79 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: rgba(23, 23, 23, 0.98);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             z-index: 1000;
-            width: 80%;
-            max-width: 300px;
+            width: 85%;
+            max-width: 320px;
             text-align: center;
+            backdrop-filter: blur(10px);
         }
 
         .results-modal h3 {
             margin-top: 0;
-            color: #333;
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
         }
 
         .results-stats {
-            margin: 20px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 6px;
+            margin: 24px 0;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
         }
 
         .stat-item {
-            margin: 10px 0;
+            margin: 12px 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
         }
 
         .progress-bar {
             width: 100%;
-            height: 20px;
-            background: #e9ecef;
-            border-radius: 10px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
             overflow: hidden;
-            margin: 10px 0;
+            margin: 16px 0;
         }
 
         .progress-fill {
             height: 100%;
-            background: #4CAF50;
-            transition: width 0.3s ease;
+            background: linear-gradient(90deg, rgba(22, 163, 74, 0.3) 0%, rgba(74, 222, 128, 0.5) 100%);
+            transition: width 0.5s ease;
         }
 
         .modal-buttons {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             justify-content: center;
-            margin-top: 20px;
+            margin-top: 24px;
         }
 
         .modal-buttons button {
             width: auto;
-            padding: 8px 16px;
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .modal-buttons .know-btn {
+            width: auto;
+        }
+
+        .modal-buttons .dont-know-btn {
+            width: auto;
         }
     </style>
 </head>
