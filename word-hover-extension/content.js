@@ -260,6 +260,8 @@ function showTooltip(x, y, text, hiragana = '') {
       e.preventDefault();
       e.stopPropagation();
       
+      console.log('Save button clicked, current text:', saveButton.textContent);
+      
       if (saveButton.textContent === 'Add') {
         // Show deck selection
         try {
@@ -396,25 +398,26 @@ function showTooltip(x, y, text, hiragana = '') {
 
 // Handle clicks outside the save container
 document.addEventListener('mousedown', (e) => {
+  console.log('Global mousedown event triggered');
   const saveContainer = document.querySelector('.save-flashcard-container');
   if (!saveContainer) return;
 
   const deckSelect = saveContainer.querySelector('.deck-select');
   const saveButton = saveContainer.querySelector('.save-flashcard-btn');
   
-  // If clicking outside while dropdown is visible, hide dropdown but keep tooltip
-  if (deckSelect && deckSelect.style.display === 'block') {
-    if (!e.target.closest('.save-flashcard-container') && !e.target.closest('.deck-select')) {
-      deckSelect.style.display = 'none';
-      if (saveButton) saveButton.textContent = 'Add';
-    }
-    e.preventDefault();
-    e.stopPropagation();
+  console.log('Dropdown visible?', deckSelect && deckSelect.style.display === 'block');
+  
+  // If clicking inside the save container, don't do anything
+  if (e.target.closest('.save-flashcard-container')) {
+    console.log('Clicked inside save container, doing nothing');
     return;
   }
   
-  // If clicking inside the tooltip or save container, don't hide
-  if (e.target.closest('.save-flashcard-container') || e.target.closest('#word-hover-translation-tooltip')) {
+  // If dropdown is visible and clicking outside, hide it
+  if (deckSelect && deckSelect.style.display === 'block') {
+    console.log('Hiding dropdown because clicked outside');
+    deckSelect.style.display = 'none';
+    if (saveButton) saveButton.textContent = 'Add';
     return;
   }
 });
@@ -506,27 +509,21 @@ document.addEventListener('mousedown', (e) => {
   const tooltip = document.getElementById('word-hover-translation-tooltip');
   if (!tooltip) return;
 
-  const saveContainer = document.querySelector('.save-flashcard-container');
-  const deckSelect = saveContainer?.querySelector('.deck-select');
-  const saveButton = saveContainer?.querySelector('.save-flashcard-btn');
-  
-  // If we're in the process of selecting a deck (dropdown is visible), don't hide anything
-  if (deckSelect && deckSelect.style.display === 'block') {
-    // Only hide dropdown if clicking outside the save container AND not on the dropdown itself
-    if (!e.target.closest('.save-flashcard-container') && !e.target.closest('.deck-select')) {
-      deckSelect.style.display = 'none';
-      if (saveButton) saveButton.textContent = 'Add';
+  // If we click inside the tooltip, don't hide it
+  if (e.target.closest('#word-hover-translation-tooltip')) {
+    return;
+  }
+
+  // Only hide tooltip if clicking completely outside everything
+  if (!e.target.closest('.save-flashcard-container')) {
+    const saveContainer = document.querySelector('.save-flashcard-container');
+    const deckSelect = saveContainer?.querySelector('.deck-select');
+    
+    // If dropdown is not visible, hide the whole tooltip
+    if (!deckSelect || deckSelect.style.display !== 'block') {
+      hideTooltip();
     }
-    return;
   }
-
-  // If we click inside the tooltip or save container, don't hide
-  if (e.target.closest('.save-flashcard-container') || e.target.closest('#word-hover-translation-tooltip')) {
-    return;
-  }
-
-  // Otherwise, hide both the tooltip and save container
-  hideTooltip();
 });
 
 // Only hide on scroll if we're not selecting a deck
