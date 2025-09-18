@@ -280,7 +280,7 @@ function showTooltip(x, y, text, hiragana = '') {
           }
           
           // Populate deck select
-          deckSelect.innerHTML = '';
+          deckSelect.innerHTML = '<option value="" disabled selected>Choose a deck:</option>';
           decks.forEach(deck => {
             const option = document.createElement('option');
             option.value = deck.id;
@@ -294,17 +294,29 @@ function showTooltip(x, y, text, hiragana = '') {
           deckSelect.style.transform = 'translateY(0)';
           saveButton.textContent = 'Save';
           
-          // Position the deck select above the save button
-          const saveButtonRect = saveButton.getBoundingClientRect();
-          deckSelect.style.position = 'absolute';
-          deckSelect.style.bottom = `${saveButtonRect.height + 8}px`;
-          deckSelect.style.left = '0';
-          deckSelect.style.width = '100%';
+          // Position the deck select above the save container
+          const saveContainerRect = saveContainer.getBoundingClientRect();
+          deckSelect.style.position = 'fixed';
+          deckSelect.style.top = `${saveContainerRect.top - 50}px`;
+          deckSelect.style.left = `${saveContainerRect.left}px`;
+          deckSelect.style.width = `${saveContainerRect.width}px`;
+          deckSelect.style.zIndex = '1000001';
           
         } catch (error) {
           console.error('Error loading decks:', error);
         }
-      } else if (saveButton.textContent === 'Save' && deckSelect.value) {
+      } else if (saveButton.textContent === 'Save') {
+        if (!deckSelect.value) {
+          // Shake the dropdown if no deck is selected
+          deckSelect.style.transform = 'translateX(5px)';
+          setTimeout(() => {
+            deckSelect.style.transform = 'translateX(-5px)';
+            setTimeout(() => {
+              deckSelect.style.transform = 'translateX(0)';
+            }, 100);
+          }, 100);
+          return;
+        }
         // Save to selected deck
         const originalText = window.getSelection().toString().trim();
         const selectedDeckId = deckSelect.value;
@@ -337,19 +349,26 @@ function showTooltip(x, y, text, hiragana = '') {
                 totalCount: decks[deckIndex].cards.length
               });
               
+              // Show success state
+              const originalButtonText = saveButton.textContent;
               saveButton.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
-                Saved
               `;
-              saveButton.disabled = true;
-              saveButton.style.background = '#1a1a1a';
-              saveButton.style.display = 'flex';
-              saveButton.style.alignItems = 'center';
-              saveButton.style.justifyContent = 'center';
-              saveButton.style.gap = '4px';
+              saveButton.style.background = 'rgba(22, 163, 74, 0.2)';
+              saveButton.style.borderColor = 'rgba(74, 222, 128, 0.2)';
+              saveButton.style.color = '#4ade80';
               deckSelect.style.display = 'none';
+              
+              // Reset after 1.5 seconds
+              setTimeout(() => {
+                saveButton.textContent = 'Add';
+                saveButton.style.background = 'rgba(23, 23, 23, 0.98)';
+                saveButton.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                saveButton.style.color = 'white';
+                saveButton.disabled = false;
+              }, 1500);
               // Clear the processing state
               saveContainer.removeAttribute('data-processing');
             }
