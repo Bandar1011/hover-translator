@@ -32,7 +32,7 @@ async function handleTranslation(message, sendResponse) {
   try {
     // Note: In production, you should store the API key securely
     const apiKey = 'AIzaSyAYRB-B9wg3Rs-Kc5cuSDzASM4Eo2Iuzu4';
-    const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + apiKey;
+    const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
     
     // New, clearer prompt with valid JSON examples to ensure reliable responses.
     const prompt = `Analyze the following text: "${message.word}".
