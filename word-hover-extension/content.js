@@ -226,6 +226,7 @@ function showTooltip(x, y, text, hiragana = '') {
     const saveButton = document.createElement('button');
     saveButton.textContent = 'Add';
     saveButton.className = 'save-flashcard-btn';
+    console.log('Save button created:', saveButton);
     saveButton.style.cssText = `
       background: rgba(23, 23, 23, 0.98);
       color: white;
@@ -383,6 +384,13 @@ function showTooltip(x, y, text, hiragana = '') {
         }
       }
     });
+    
+    console.log('Event listener attached to save button');
+    
+    // Add a simple test click handler
+    saveButton.onclick = function() {
+      console.log('ONCLICK HANDLER TRIGGERED!');
+    };
     
     // Position the container near the tooltip
     const tooltipRect = tooltip.getBoundingClientRect();
