@@ -247,6 +247,8 @@ function showTooltip(x, y, text, hiragana = '') {
       pointer-events: auto;
       z-index: 1000002;
       position: relative;
+      outline: 2px solid red !important;
+      background: red !important;
     `;
 
     // Add hover effects
@@ -403,9 +405,22 @@ function showTooltip(x, y, text, hiragana = '') {
     // Add elements to container (dropdown first, then button)
     saveContainer.appendChild(deckSelect);
     saveContainer.appendChild(saveButton);
+    
     console.log('Save button added to container and container added to DOM');
     console.log('Button element:', saveButton);
+    console.log('Button parent:', saveButton.parentNode);
+    console.log('Button in DOM?', document.contains(saveButton));
     console.log('Container position:', saveContainer.style.top, saveContainer.style.left);
+    console.log('Button visible?', saveButton.offsetWidth, 'x', saveButton.offsetHeight);
+    console.log('Button style display:', saveButton.style.display);
+    console.log('Button computed style:', window.getComputedStyle(saveButton).display);
+    
+    // Test if we can trigger click programmatically
+    setTimeout(() => {
+      console.log('Testing programmatic click...');
+      saveButton.click();
+    }, 2000);
+    
     tooltip.style.pointerEvents = 'auto';
   }
 }
