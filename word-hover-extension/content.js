@@ -261,8 +261,13 @@ function showTooltip(x, y, text, hiragana = '') {
       saveButton.style.transform = 'translateY(0)';
     });
     
-    // Add click handler for the save button
-    saveButton.addEventListener('click', async (e) => {
+    console.log('Setting up save button click handler');
+    
+    // Use only onclick for now to test if clicks work at all
+    saveButton.onclick = async function(e) {
+      console.log('ONCLICK HANDLER TRIGGERED!', e);
+      alert('Button clicked! Text: ' + saveButton.textContent);
+      
       e.preventDefault();
       e.stopPropagation();
       
@@ -388,24 +393,7 @@ function showTooltip(x, y, text, hiragana = '') {
           }
         }
       }
-    });
-    
-    console.log('Event listener attached to save button');
-    
-    // Add a simple test click handler
-    saveButton.onclick = function(e) {
-      console.log('ONCLICK HANDLER TRIGGERED!', e);
-      alert('Button clicked!'); // This should definitely show if click works
     };
-    
-    // Also try addEventListener with different options
-    saveButton.addEventListener('mousedown', function(e) {
-      console.log('MOUSEDOWN on save button triggered!', e);
-    });
-    
-    saveButton.addEventListener('mouseup', function(e) {
-      console.log('MOUSEUP on save button triggered!', e);
-    });
     
     // Position the container near the tooltip
     const tooltipRect = tooltip.getBoundingClientRect();
