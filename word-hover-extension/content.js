@@ -244,6 +244,9 @@ function showTooltip(x, y, text, hiragana = '') {
       align-items: center;
       justify-content: center;
       gap: 4px;
+      pointer-events: auto;
+      z-index: 1000002;
+      position: relative;
     `;
 
     // Add hover effects
@@ -390,9 +393,19 @@ function showTooltip(x, y, text, hiragana = '') {
     console.log('Event listener attached to save button');
     
     // Add a simple test click handler
-    saveButton.onclick = function() {
-      console.log('ONCLICK HANDLER TRIGGERED!');
+    saveButton.onclick = function(e) {
+      console.log('ONCLICK HANDLER TRIGGERED!', e);
+      alert('Button clicked!'); // This should definitely show if click works
     };
+    
+    // Also try addEventListener with different options
+    saveButton.addEventListener('mousedown', function(e) {
+      console.log('MOUSEDOWN on save button triggered!', e);
+    });
+    
+    saveButton.addEventListener('mouseup', function(e) {
+      console.log('MOUSEUP on save button triggered!', e);
+    });
     
     // Position the container near the tooltip
     const tooltipRect = tooltip.getBoundingClientRect();
