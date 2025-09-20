@@ -189,6 +189,10 @@ function showTooltip(x, y, text, hiragana = '') {
               margin-top: 8px;
               pointer-events: auto !important;
             `;
+            // Persist current translation context for global fallback handlers
+            saveContainer.dataset.translation = text || '';
+            saveContainer.dataset.hiragana = hiragana || '';
+            saveContainer.dataset.targetLanguage = targetLanguage || '';
 
     // Create deck select dropdown
     const deckSelect = document.createElement('select');
@@ -581,6 +585,73 @@ document.addEventListener('mousedown', (e) => {
     }
   }
 });
+
+// Global capture click fallback: if page blocks the element handler, handle here
+document.addEventListener('click', async (ev) => {
+  try {
+    const btn = ev.target && ev.target.closest && ev.target.closest('.save-flashcard-btn');
+    if (!btn) return;
+    ev.stopPropagation();
+    ev.preventDefault();
+
+    const container = document.querySelector('.save-flashcard-container');
+    if (!container) return;
+    const select = container.querySelector('.deck-select');
+
+    // If in Add state, populate and show dropdown
+    if (btn.textContent === 'Add') {
+      const result = await chrome.storage.sync.get(['decks']);
+      const decks = result.decks || [];
+      if (decks.length === 0) {
+        decks.push({ id: 'deck1', name: 'Deck 1', cards: [] });
+        await chrome.storage.sync.set({ decks });
+      }
+      select.innerHTML = '<option value="" disabled selected>Choose a deck:</option>';
+      decks.forEach(deck => {
+        const opt = document.createElement('option');
+        opt.value = deck.id;
+        opt.textContent = `${deck.name} (${deck.cards.length} cards)`;
+        select.appendChild(opt);
+      });
+      select.style.display = 'block';
+      btn.textContent = 'Save';
+      return;
+    }
+
+    // In Save state, require selection and store card
+    if (btn.textContent === 'Save') {
+      if (!select.value) {
+        select.style.transform = 'translateX(5px)';
+        setTimeout(() => { select.style.transform = 'translateX(0)'; }, 150);
+        return;
+      }
+      const originalText = window.getSelection().toString().trim();
+      const selectedDeckId = select.value;
+      const newCard = {
+        id: String(Date.now()),
+        original: originalText,
+        translation: container.dataset.translation || '',
+        hiragana: container.dataset.hiragana || '',
+        targetLanguage: container.dataset.targetLanguage || '',
+        createdAt: new Date().toISOString(),
+        known: false,
+        reviewCount: 0
+      };
+      const result = await chrome.storage.sync.get(['decks']);
+      const decks = result.decks || [];
+      const idx = decks.findIndex(d => d.id === selectedDeckId);
+      if (idx !== -1) {
+        decks[idx].cards.push(newCard);
+        await chrome.storage.sync.set({ decks });
+        chrome.runtime.sendMessage({ action: 'flashcardSaved', deckId: selectedDeckId, totalCount: decks[idx].cards.length });
+        select.style.display = 'none';
+        btn.textContent = 'Add';
+      }
+    }
+  } catch (err) {
+    console.error('Global click fallback error:', err);
+  }
+}, true);
 
 // Only hide on scroll if we're not selecting a deck
 document.addEventListener('scroll', () => {
