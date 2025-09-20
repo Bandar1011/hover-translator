@@ -166,7 +166,9 @@ function showTooltip(x, y, text, hiragana = '') {
   tooltip.style.display = 'block';
   
   // Add save button if this is a translation
+  console.log('Checking if should add save button. Text:', text);
   if (text !== 'Translating...' && text !== 'Translation failed' && text !== 'Translation error') {
+    console.log('Adding save button and container');
     // Remove existing save container if it exists
     const existingContainer = tooltip.querySelector('.save-flashcard-container');
     if (existingContainer) {
@@ -400,6 +402,9 @@ function showTooltip(x, y, text, hiragana = '') {
     // Add elements to container (dropdown first, then button)
     saveContainer.appendChild(deckSelect);
     saveContainer.appendChild(saveButton);
+    console.log('Save button added to container and container added to DOM');
+    console.log('Button element:', saveButton);
+    console.log('Container position:', saveContainer.style.top, saveContainer.style.left);
     tooltip.style.pointerEvents = 'auto';
   }
 }
