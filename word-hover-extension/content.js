@@ -167,7 +167,7 @@ function showTooltip(x, y, text, hiragana = '') {
   
   // Add save button if this is a translation
   console.log('Checking if should add save button. Text:', text);
-  if (text !== 'Translating...' && text !== 'Translation failed' && text !== 'Translation error') {
+  if (text && text !== 'Translating...' && !text.startsWith('Translation failed')) {
     console.log('Adding save button and container');
     // Remove existing save container if it exists
     // Because we append to body, look for an existing container in document
@@ -241,6 +241,20 @@ function showTooltip(x, y, text, hiragana = '') {
     saveButton.textContent = 'Add';
     saveButton.className = 'save-flashcard-btn';
     console.log('Save button created:', saveButton);
+    // Diagnostics to ensure element receives events
+    saveButton.addEventListener('mouseover', () => console.log('Add button mouseover'));
+    saveButton.addEventListener('mouseenter', () => console.log('Add button mouseenter'));
+    saveButton.addEventListener('focus', () => console.log('Add button focus'));
+    setTimeout(() => {
+      console.log('Add button diagnostic:', {
+        inDOM: document.contains(saveButton),
+        size: { w: saveButton.offsetWidth, h: saveButton.offsetHeight },
+        display: getComputedStyle(saveButton).display,
+        visibility: getComputedStyle(saveButton).visibility,
+        pointerEvents: getComputedStyle(saveButton).pointerEvents,
+        zIndex: getComputedStyle(saveButton).zIndex
+      });
+    }, 0);
     saveButton.style.cssText = `
       background: rgba(23, 23, 23, 0.98) !important;
       color: white !important;
@@ -405,8 +419,21 @@ function showTooltip(x, y, text, hiragana = '') {
         }
       }
     };
-    // Register click in capture phase to avoid page-level blockers
-    saveButton.addEventListener('click', onSaveButtonClick, { capture: true });
+    // Helper to safely invoke click handler even if some listeners interfere
+    const safeInvoke = (ev) => {
+      try { onSaveButtonClick(ev); } catch (err) { console.error('Add/Save click handler error:', err); }
+    };
+    // Register multiple routes to maximize reliability
+    saveButton.addEventListener('click', safeInvoke, { capture: true });
+    saveButton.addEventListener('click', safeInvoke, false);
+    saveButton.onclick = safeInvoke;
+    saveButton.addEventListener('mousedown', (ev) => {
+      // Fallback: if in Add state, immediately run handler on mousedown
+      if (saveButton.textContent === 'Add') {
+        ev.stopPropagation();
+        safeInvoke(ev);
+      }
+    }, { capture: true });
     
     // Position the container near the tooltip
     const tooltipRect = tooltip.getBoundingClientRect();
