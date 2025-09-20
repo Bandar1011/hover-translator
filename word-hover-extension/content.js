@@ -170,7 +170,8 @@ function showTooltip(x, y, text, hiragana = '') {
   if (text !== 'Translating...' && text !== 'Translation failed' && text !== 'Translation error') {
     console.log('Adding save button and container');
     // Remove existing save container if it exists
-    const existingContainer = tooltip.querySelector('.save-flashcard-container');
+    // Because we append to body, look for an existing container in document
+    const existingContainer = document.querySelector('.save-flashcard-container');
     if (existingContainer) {
         existingContainer.remove();
     }
@@ -404,9 +405,8 @@ function showTooltip(x, y, text, hiragana = '') {
         }
       }
     };
-    // Register both click and pointerdown to maximize reliability
+    // Register click in capture phase to avoid page-level blockers
     saveButton.addEventListener('click', onSaveButtonClick, { capture: true });
-    saveButton.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); }, { capture: true });
     
     // Position the container near the tooltip
     const tooltipRect = tooltip.getBoundingClientRect();
