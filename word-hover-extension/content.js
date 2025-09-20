@@ -175,18 +175,19 @@ function showTooltip(x, y, text, hiragana = '') {
         existingContainer.remove();
     }
 
-    // Create container for save button and deck select
-    const saveContainer = document.createElement('div');
-    saveContainer.className = 'save-flashcard-container';
-    saveContainer.style.cssText = `
-      position: fixed;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      z-index: 1000000;
-      margin-top: 8px;
-    `;
+            // Create container for save button and deck select
+            const saveContainer = document.createElement('div');
+            saveContainer.className = 'save-flashcard-container';
+            saveContainer.style.cssText = `
+              position: fixed !important;
+              display: flex !important;
+              flex-direction: column;
+              align-items: center;
+              gap: 8px;
+              z-index: 1000000 !important;
+              margin-top: 8px;
+              pointer-events: auto !important;
+            `;
 
     // Create deck select dropdown
     const deckSelect = document.createElement('select');
@@ -195,16 +196,18 @@ function showTooltip(x, y, text, hiragana = '') {
       display: none;
       padding: 10px 12px;
       font-size: 14px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
+      border: 2px solid rgba(255, 255, 255, 0.3) !important;
       border-radius: 8px;
-      background: rgba(23, 23, 23, 0.98);
-      color: #ffffff;
+      background: rgba(23, 23, 23, 0.98) !important;
+      color: #ffffff !important;
       cursor: pointer;
       min-width: 180px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
       margin-bottom: 8px;
       appearance: none;
       transition: all 0.2s ease;
+      z-index: 1000003 !important;
+      pointer-events: auto !important;
       background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
       background-repeat: no-repeat;
       background-position: right 12px top 50%;
@@ -220,9 +223,17 @@ function showTooltip(x, y, text, hiragana = '') {
       deckSelect.style.background = 'rgba(23, 23, 23, 0.98)';
       deckSelect.style.borderColor = 'rgba(255, 255, 255, 0.1)';
     });
+    // Prevent document handlers from firing when interacting with the select
+    deckSelect.addEventListener('mousedown', (ev) => { ev.stopPropagation(); }, true);
+    deckSelect.addEventListener('click', (ev) => { ev.stopPropagation(); }, true);
+    deckSelect.addEventListener('mouseup', (ev) => { ev.stopPropagation(); }, true);
     
     // Add the container to the body instead of the tooltip
     document.body.appendChild(saveContainer);
+    // Ensure clicks inside the container never propagate to document handlers
+    saveContainer.addEventListener('mousedown', (ev) => { ev.stopPropagation(); }, true);
+    saveContainer.addEventListener('mouseup', (ev) => { ev.stopPropagation(); }, true);
+    saveContainer.addEventListener('click', (ev) => { ev.stopPropagation(); }, true);
 
     // Create save button
     const saveButton = document.createElement('button');
@@ -230,23 +241,25 @@ function showTooltip(x, y, text, hiragana = '') {
     saveButton.className = 'save-flashcard-btn';
     console.log('Save button created:', saveButton);
     saveButton.style.cssText = `
-      background: rgba(23, 23, 23, 0.98);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(23, 23, 23, 0.98) !important;
+      color: white !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
       border-radius: 8px;
       padding: 8px 16px;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-      display: flex;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      display: flex !important;
       align-items: center;
       justify-content: center;
       gap: 4px;
-      pointer-events: auto;
-      z-index: 1000002;
+      pointer-events: auto !important;
+      z-index: 1000002 !important;
       position: relative;
+      min-width: 60px;
+      min-height: 36px;
     `;
 
     // Add hover effects
@@ -260,6 +273,10 @@ function showTooltip(x, y, text, hiragana = '') {
       saveButton.style.borderColor = 'rgba(255, 255, 255, 0.1)';
       saveButton.style.transform = 'translateY(0)';
     });
+    // Ensure clicks on the button don't bubble to document and hide things
+    saveButton.addEventListener('mousedown', (ev) => { ev.stopPropagation(); }, true);
+    saveButton.addEventListener('click', (ev) => { ev.stopPropagation(); }, true);
+    saveButton.addEventListener('mouseup', (ev) => { ev.stopPropagation(); }, true);
     
     
     // Add click handler for the save button
@@ -406,24 +423,22 @@ function showTooltip(x, y, text, hiragana = '') {
 
 // Handle clicks outside the save container
 document.addEventListener('mousedown', (e) => {
-  console.log('Global mousedown event triggered');
+  // console debug removed to avoid noise
   const saveContainer = document.querySelector('.save-flashcard-container');
   if (!saveContainer) return;
 
   const deckSelect = saveContainer.querySelector('.deck-select');
   const saveButton = saveContainer.querySelector('.save-flashcard-btn');
   
-  console.log('Dropdown visible?', deckSelect && deckSelect.style.display === 'block');
+  // keep logic minimal; visibility is checked below
   
   // If clicking inside the save container, don't do anything
   if (e.target.closest('.save-flashcard-container')) {
-    console.log('Clicked inside save container, doing nothing');
     return;
   }
   
   // If dropdown is visible and clicking outside, hide it
   if (deckSelect && deckSelect.style.display === 'block') {
-    console.log('Hiding dropdown because clicked outside');
     deckSelect.style.display = 'none';
     if (saveButton) saveButton.textContent = 'Add';
     return;
@@ -457,6 +472,10 @@ let debounceTimer; // Timer for debouncing API requests
 let lastSelection = '';
 
 document.addEventListener('mouseup', async (event) => {
+  // If mouseup happened inside the save container, do nothing so the button click can fire
+  if (event.target && event.target.closest && event.target.closest('.save-flashcard-container')) {
+    return;
+  }
   const selection = window.getSelection();
   const currentSelection = selection.toString().trim();
   
