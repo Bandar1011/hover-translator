@@ -247,8 +247,6 @@ function showTooltip(x, y, text, hiragana = '') {
       pointer-events: auto;
       z-index: 1000002;
       position: relative;
-      outline: 2px solid red !important;
-      background: red !important;
     `;
 
     // Add hover effects
@@ -263,13 +261,9 @@ function showTooltip(x, y, text, hiragana = '') {
       saveButton.style.transform = 'translateY(0)';
     });
     
-    console.log('Setting up save button click handler');
     
-    // Use only onclick for now to test if clicks work at all
+    // Add click handler for the save button
     saveButton.onclick = async function(e) {
-      console.log('ONCLICK HANDLER TRIGGERED!', e);
-      alert('Button clicked! Text: ' + saveButton.textContent);
-      
       e.preventDefault();
       e.stopPropagation();
       
@@ -304,8 +298,6 @@ function showTooltip(x, y, text, hiragana = '') {
           deckSelect.style.display = 'block';
           saveButton.textContent = 'Save';
           
-          console.log('Showing deck select dropdown'); // Debug log
-          console.log('Dropdown display style:', deckSelect.style.display);
           
         } catch (error) {
           console.error('Error loading decks:', error);
@@ -406,20 +398,7 @@ function showTooltip(x, y, text, hiragana = '') {
     saveContainer.appendChild(deckSelect);
     saveContainer.appendChild(saveButton);
     
-    console.log('Save button added to container and container added to DOM');
-    console.log('Button element:', saveButton);
-    console.log('Button parent:', saveButton.parentNode);
-    console.log('Button in DOM?', document.contains(saveButton));
-    console.log('Container position:', saveContainer.style.top, saveContainer.style.left);
-    console.log('Button visible?', saveButton.offsetWidth, 'x', saveButton.offsetHeight);
-    console.log('Button style display:', saveButton.style.display);
-    console.log('Button computed style:', window.getComputedStyle(saveButton).display);
     
-    // Test if we can trigger click programmatically
-    setTimeout(() => {
-      console.log('Testing programmatic click...');
-      saveButton.click();
-    }, 2000);
     
     tooltip.style.pointerEvents = 'auto';
   }
